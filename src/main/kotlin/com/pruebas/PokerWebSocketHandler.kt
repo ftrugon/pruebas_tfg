@@ -1,5 +1,12 @@
 package com.pruebas
 
+import com.pruebas.pokerLogic.BetManager
+import com.pruebas.pokerLogic.Deck
+import com.pruebas.pokerLogic.HandManager
+import com.pruebas.pokerLogic.Player
+import com.pruebas.pokerLogic.PotManager
+import kotlinx.serialization.json.Json
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import org.springframework.stereotype.Component
@@ -9,8 +16,13 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
 
     private val players = mutableListOf<WebSocketSession>()
     private var currentPlayerIndex = 0
+    private var handManager = HandManager()
+    private var betManager = BetManager()
+    private var potManager = PotManager(betManager)
+    private var deck = Deck()
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
+
         players.forEach {
             println(it)
         }
@@ -30,6 +42,9 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val action = message.payload
+
+        Json.decodeFromString<Player>(action)
+
         println("Acción recibida: $action")
 
         if (session == players[currentPlayerIndex]) {
