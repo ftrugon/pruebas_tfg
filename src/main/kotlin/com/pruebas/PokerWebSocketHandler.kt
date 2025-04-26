@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 @Component
 class PokerWebSocketHandler : TextWebSocketHandler() {
 
-    private val players = mutableListOf<WebSocketSession>()
+    private val players = mutableListOf<Player>()
     private var currentPlayerIndex = 0
     private var handManager = HandManager()
     private var betManager = BetManager()
@@ -26,24 +26,37 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
         players.forEach {
             println(it)
         }
-        players.add(session)
+
+
+
+        players.add(Player(session,"",0))
         println("Jugador conectado: ${session.id}")
 
         if (players.size == 2) { // Por ahora, mínimo 2 jugadores para empezar
             startGame()
         }
+
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         println("Conexion cerrada: ${session.id}")
-        players.remove(session)
+        players.removeIf { it.session == session }
         super.afterConnectionClosed(session, status)
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val action = message.payload
 
-        Json.decodeFromString<Player>(action)
+        val message = Json.decodeFromString<Message>(action)
+
+        if (message.messageType == MessageType.PLAYER_INFO){
+            val playerInfo = Json.decodeFromString<Player>(message.content)
+            val playerToChange = players.find { it.session == session }
+
+            playerToChange?.name = playerInfo.name
+            playerToChange?.dinero = playerInfo.dinero
+
+        }
 
         println("Acción recibida: $action")
 
@@ -70,6 +83,6 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
     }
 
     private fun broadcast(message: String) {
-        players.forEach { it.sendMessage(TextMessage(message)) }
+        players.forEach { it.session.sendMessage(TextMessage(message)) }
     }
 }
