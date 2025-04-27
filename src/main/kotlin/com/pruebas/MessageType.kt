@@ -1,7 +1,11 @@
 package com.pruebas
 
 enum class MessageType {
+    PLAYER_READY,
+    PLAYER_JOIN,
     PLAYER_INFO,
     TEXT_MESSAGE,
-    PLAY
+    ACTION,
+    STATE_UPDATE
+
 }

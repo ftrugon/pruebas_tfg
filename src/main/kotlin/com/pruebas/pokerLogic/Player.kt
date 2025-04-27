@@ -12,4 +12,17 @@ data class Player(
     var isSmall:Boolean = false,
     var isBig:Boolean = false,
     var isReady:Boolean = false,
-)
+){
+    fun resetForNewHand() {
+        cards.clear()
+        hasFolded = false
+    }
+
+    fun giveCard(card: Card) {
+        cards.add(card)
+    }
+
+    fun fold() {
+        hasFolded = true
+    }
+}
