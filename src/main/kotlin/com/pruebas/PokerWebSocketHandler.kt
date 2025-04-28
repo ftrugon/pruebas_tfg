@@ -75,7 +75,7 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
 
         if (message.messageType == MessageType.PLAYER_READY){
 
-            playerToChange?.isReady = !playerToChange.isReady
+            playerToChange?.isReady = !playerToChange!!.isReady
 
             broadcast(Message(MessageType.PLAYER_READY,Json.encodeToString(playerToChange)))
 
