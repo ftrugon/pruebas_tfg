@@ -10,6 +10,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.util.concurrent.Executors
 
 
 class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler() {
@@ -68,6 +69,50 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     }
 
     private fun betRound(){
+        if (activePlayers.isEmpty()) return
+
+        var lastBet = 0
+        var index = 0
+        var numPlayersWhoCalled = 0
+
+
+        while (numPlayersWhoCalled < activePlayers.size){
+            val player = activePlayers[index % activePlayers.size]
+
+
+            if (player.dinero <= 0) {
+                numPlayersWhoCalled++
+                index++
+                continue
+            }
+
+            println("Turno de ${player.name} (dinero: ${player.dinero})")
+            println("Tus cartas")
+            println()
+            for (carta in player.cards) {
+                print("$carta, ")
+            }
+            println(" ---> Tu mano actual tiene ${player.hand?.ranking}")
+            println("1. Foldear")
+            println("2. Apostar / Igualar (mínimo para igualar: $lastBet)")
+
+            // EN LUGAR de readdln aqui tiene quee ir algo para esperar un tiempo
+            // mas que esperar, una instruccion que se ejecute cuanmdo el usuario finalmente le envie una señal al servidor del tipo correspondiente
+            // y si no la envia en 30 secs foldea automatico
+            // crear otra clase para la accion que se va a realizar
+
+            // betPayload
+            // betType --> otra data class
+            // amount --> realmente esto solo te sirve si la accion es un raise
+            // me da pereza hacer la clase y buscar informacion ahora mismo, por eso la razon de comentar esto
+            val opcion = readln().toIntOrNull()
+
+
+
+
+        }
+
+
         broadcast(Message(MessageType.TEXT_MESSAGE,"RONDA DE APUESTAS"))
     }
 
