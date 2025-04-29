@@ -9,8 +9,8 @@ data class Player(
     var cards: MutableList<Card> = mutableListOf<Card>(),
     var hand: Hand? = null,
     var hasFolded:Boolean = false,
-    var isSmall:Boolean = false,
-    var isBig:Boolean = false,
+    var isSmallBlind:Boolean = false,
+    var isBigBlind:Boolean = false,
     var isReady:Boolean = false,
 ){
     fun resetForNewHand() {

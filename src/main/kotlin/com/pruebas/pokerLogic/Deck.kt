@@ -4,7 +4,7 @@ class Deck {
     val cards = mutableListOf<Card>()
 
 
-    fun llenarBaraja(){
+    fun fillDeck(){
         for (suit in CardSuit.entries){
             for (value in CardValue.entries){
                 cards.add(Card(suit = suit,value = value))
@@ -20,5 +20,9 @@ class Deck {
 
     fun shuffle(){
         cards.shuffle()
+    }
+
+    fun clear(){
+        cards.clear()
     }
 }

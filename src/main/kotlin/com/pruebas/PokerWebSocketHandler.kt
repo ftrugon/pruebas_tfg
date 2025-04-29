@@ -1,42 +1,137 @@
 package com.pruebas
 
 import com.pruebas.pokerLogic.BetManager
+import com.pruebas.pokerLogic.Card
 import com.pruebas.pokerLogic.Deck
 import com.pruebas.pokerLogic.HandManager
 import com.pruebas.pokerLogic.Player
 import com.pruebas.pokerLogic.PotManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
-import org.springframework.stereotype.Component
 
-@Component
-class PokerWebSocketHandler : TextWebSocketHandler() {
+
+class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler() {
 
     private val players = mutableListOf<Player>()
+    private val activePlayers = players
+
     private var currentPlayerIndex = 0
     private var handManager = HandManager()
     private var betManager = BetManager()
     private var potManager = PotManager(betManager)
     private var deck = Deck()
+    private var communityCards = mutableListOf<Card>()
+
+    private var gameActive = false
+    private var dealerIndex = 0
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
+        players.add(Player(session,"",0))
+
+    }
+
+    private fun startRound(){
+
+        communityCards.clear()
+
+        dealerIndex = (dealerIndex + 1) % players.size
+        val smallBlindIndex = (dealerIndex + 1) % players.size
+        val bigBlindIndex = (dealerIndex + 2) % players.size
+
         players.forEach {
-            println(it)
+            it.isSmallBlind = false
+            it.isBigBlind = false
         }
 
-        players.add(Player(session,"",0))
-        println("Jugador conectado: ${session.id}")
+        players[smallBlindIndex].isSmallBlind = true
+        players[bigBlindIndex].isBigBlind = true
 
-        broadcast(Message(MessageType.PLAYER_JOIN, ""))
+        deck.clear()
+        deck.fillDeck()
+        deck.shuffle()
 
-        if (players.size == 2 && allPlayersReady()) {
-            // METODO PARA EMPEZAR LA PARTIDA O LO QUE SEA
+        giveCards()
+
+        preFlop()
+        flop()
+        turn()
+        river()
+        showdown()
+
+    }
+
+    private fun endRound(){
+        players.forEach { it.isReady = false }
+    }
+
+    private fun betRound(){
+        broadcast(Message(MessageType.TEXT_MESSAGE,"RONDA DE APUESTAS"))
+    }
+
+    private fun addToCommunityCards(numCards: Int){
+        for (i in 0..<numCards){
+            communityCards.add(deck.drawCard())
+        }
+        broadcast(Message(MessageType.STATE_UPDATE,"Community Cards: $communityCards"))
+    }
+
+    private fun calculateHands(){
+        players.forEach {player ->
+            player.hand = handManager.calculteHand((player.cards + communityCards).sortedByDescending { it.value.weight })
+            val mssg = Message(MessageType.TEXT_MESSAGE,player.hand?.ranking.toString())
+            val jsonmsg = Json.encodeToString(mssg)
+            player.session.sendMessage(TextMessage(jsonmsg))
         }
     }
+
+    fun preFlop(){
+        betRound()
+    }
+
+    fun flop(){
+        addToCommunityCards(3)
+        calculateHands()
+        betRound()
+    }
+
+    fun turn(){
+        addToCommunityCards(1)
+        calculateHands()
+        betRound()
+    }
+
+    fun river(){
+        addToCommunityCards(1)
+        calculateHands()
+        betRound()
+    }
+
+    fun showdown(){
+
+        // repartir premios -->
+        endRound()
+    }
+
+
+    fun giveCards(){
+        players.forEach {
+            val card1 = deck.drawCard()
+            val card2 = deck.drawCard()
+            it.giveCard(card1)
+            it.giveCard(card2)
+
+            val messageToSend = Message(MessageType.PLAYER_CARDS,listOf(card1,card2).toString())
+
+            val jsonMesagge = Json.encodeToString(messageToSend)
+
+            it.session.sendMessage(TextMessage(jsonMesagge))
+
+        }
+    }
+
 
     private fun allPlayersReady(): Boolean {
         players.forEach {
@@ -49,6 +144,7 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
         println("Conexion cerrada: ${session.id}")
         players.removeIf { it.session == session }
         super.afterConnectionClosed(session, status)
+
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
@@ -64,6 +160,8 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
             playerToChange?.name = playerInfo.name
             playerToChange?.dinero = playerInfo.dinero
 
+            broadcast(Message(MessageType.PLAYER_JOIN, "${playerToChange?.name}"))
+
             println(playerToChange)
 
         }
@@ -75,9 +173,16 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
 
         if (message.messageType == MessageType.PLAYER_READY){
 
-            playerToChange?.isReady = !playerToChange!!.isReady
+            if (!gameActive){
+                playerToChange?.isReady = !playerToChange!!.isReady
+                broadcast(Message(MessageType.PLAYER_READY,playerToChange!!.name))
 
-            broadcast(Message(MessageType.PLAYER_READY,Json.encodeToString(playerToChange)))
+                if (players.size >= 3 && allPlayersReady()) {
+                    // METODO PARA EMPEZAR LA PARTIDA O LO QUE SEA
+                    startRound()
+                    broadcast(Message(MessageType.TEXT_MESSAGE, "LA PARTIDA VA A EMPEZAR"))
+                }
+            }
 
         }
 
@@ -92,15 +197,9 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
         // ESTOS 2 PUNTOS SON LOS COMPLICADOS, DE MOMENTO COMINUCACION CON EN CLIETNE
 
         // ACTION, --> Las distintas acciones que puede hace el usuario (fold, call, raise)
-        // STATE_UPDATE --> para cuando el servidor haga algun cambio, notificarselo a los usuarios
 
         println("Acción recibida: $action")
 
-        if (session == players[currentPlayerIndex].session) {
-
-        } else {
-            session.sendMessage(TextMessage("No es tu turno"))
-        }
     }
 
 
@@ -108,4 +207,5 @@ class PokerWebSocketHandler : TextWebSocketHandler() {
         val jsonMessage = Json.encodeToString<Message>(message)
         players.forEach { it.session.sendMessage(TextMessage(jsonMessage)) }
     }
+
 }

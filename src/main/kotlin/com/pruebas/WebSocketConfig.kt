@@ -8,10 +8,13 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 @Configuration
 @EnableWebSocket
-class WebSocketConfig( private val handler: PokerWebSocketHandler) : WebSocketConfigurer {
+class WebSocketConfig : WebSocketConfigurer {
+
+    private val games = mutableMapOf<String, PokerWebSocketHandler>()
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(handler, "/game/{gameid}").setAllowedOrigins("*")
+        registry.addHandler(CustomUrlWebSocketHandler(games), "/game/{gameid}")
+            .setAllowedOrigins("*")
     }
 
 }
