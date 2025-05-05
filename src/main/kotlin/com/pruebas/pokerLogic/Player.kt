@@ -5,7 +5,7 @@ import org.springframework.web.socket.WebSocketSession
 data class Player(
     val session: WebSocketSession,
     var name:String,
-    var dinero:Int,
+    var tokens:Int,
     var cards: MutableList<Card> = mutableListOf<Card>(),
     var hand: Hand? = null,
     var playerState: PlayerState = PlayerState.NOT_READY, // reemplazar por PlayerState, notReady, ready, retired, banned

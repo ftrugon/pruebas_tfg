@@ -6,6 +6,7 @@ class BetManager {
     val madeBets = mutableListOf<Bet>()
 
     fun makeBet(player: Player, amount: Int) {
+        player.tokens -= amount
         madeBets.add(Bet(player, amount))
     }
 

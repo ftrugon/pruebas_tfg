@@ -118,9 +118,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         activePlayers.forEach {player ->
             player.hand = handManager.calculateHand((player.cards + communityCards).sortedByDescending { it.value.weight })
 
-            val mssg = Message(MessageType.TEXT_MESSAGE,player.hand?.ranking.toString())
-            val jsonmsg = Json.encodeToString(mssg)
-            player.session.sendMessage(TextMessage(jsonmsg))
+            sendMessageToPlayer(player,Message(MessageType.TEXT_MESSAGE,player.hand?.ranking.toString()))
         }
     }
 
@@ -142,7 +140,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         val playerInfo = Json.decodeFromString<PlayerInfoMessage>(msgPayload)
 
         player.name = playerInfo.name
-        player.dinero = playerInfo.dinero
+        player.tokens = playerInfo.dinero
 
         broadcast(Message(MessageType.PLAYER_JOIN, player.name))
 
@@ -224,7 +222,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
             val prize = sidePots[i].amount / winners.size
             winners.forEach {
                 broadcast(Message(MessageType.TEXT_MESSAGE,"${it.name} es un gandor del pot $i y se lleva $prize"))
-                it.dinero += prize
+                it.tokens += prize
             }
         }
 
@@ -237,7 +235,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
             it.cards.clear()
             it.playerState = PlayerState.NOT_READY
 
-            if (it.dinero <= bigBlindAmount){
+            if (it.tokens <= bigBlindAmount){
                 it.session.close()
             }
         }
@@ -256,9 +254,9 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
             return
         }
 
-        if (actualTurn == TurnType.RIVER){
-            actualTurn = TurnType.SHOWDOWN
-        }
+//        if (actualTurn == TurnType.RIVER){
+//            actualTurn = TurnType.SHOWDOWN
+//        }
 
         if (actualTurn == TurnType.TURN){
             actualTurn = TurnType.RIVER
@@ -287,16 +285,20 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
             if (player == activePlayers[actualPlayerIndex % activePlayers.size]){
 
-                broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' bet ${action.amount}"))
-
-                // falta poner la apuesta en el betmanager
-
                 if (action.action == BetAction.RAISE  && action.amount > 0){
 
-                    allPlayersToNotReady()
-                    player.playerState = PlayerState.READY
+                    if (action.amount <= player.tokens){
+                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' bet ${action.amount}"))
 
-                    betManager.makeBet(player,action.amount)
+                        allPlayersToNotReady()
+                        player.playerState = PlayerState.READY
+
+                        betManager.makeBet(player,action.amount)
+                    }else{
+                        sendMessageToPlayer(player,Message(MessageType.TEXT_MESSAGE,"You dont have enough tokens, all your tokens will be bet"))
+                        betManager.makeBet(player,action.amount)
+                    }
+
 
                 }else if (action.action == BetAction.CALL){
 
@@ -311,13 +313,19 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
                         lastBet?.amount ?: 0
                     }
 
-                    if (amountToBet > 0) {
+                    if (amountToBet > player.tokens){
+
+                        sendMessageToPlayer(player, Message(MessageType.TEXT_MESSAGE,"You dont have enough tokens, all your tokens will be bet"))
+                        betManager.makeBet(player,player.tokens)
+
+                    }else if (amountToBet > 0) {
+
                         betManager.makeBet(player, amountToBet)
+                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' bet $amountToBet"))
+
+                    }else {
+                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' checked"))
                     }
-
-                    betManager.makeBet(player,amountToBet)
-
-                    // le restara al jugador la cantidad de la ultima apuesta - la cantidad de su ultima apuesta
 
                 }else if (action.action == BetAction.FOLD){
 
@@ -329,16 +337,27 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
                 if (checkIfPassRound()){
                     newRound()
                 }
+
+                if (player.tokens <= 0){
+                    activePlayers.remove(player)
+                }
+
                 actualPlayerIndex++
 
             }else{
-                player.session.sendMessage(TextMessage(Json.encodeToString(Message(MessageType.TEXT_MESSAGE,"Is not your turn"))))
+                sendMessageToPlayer(player,Message(MessageType.TEXT_MESSAGE,"Is not your turn"))
             }
+
+
         }else{
-            val jsonMsg = Json.encodeToString(Message(MessageType.TEXT_MESSAGE,"You cant make bets right now"))
-            player.session.sendMessage(TextMessage(jsonMsg))
+            sendMessageToPlayer(player,Message(MessageType.TEXT_MESSAGE,"You cant make bets right now"))
         }
 
+    }
+
+    private fun sendMessageToPlayer(player: Player, message: Message){
+        val jsonMsg = Json.encodeToString(message)
+        player.session.sendMessage(TextMessage(jsonMsg))
     }
 
     private fun broadcast(message: Message) {
