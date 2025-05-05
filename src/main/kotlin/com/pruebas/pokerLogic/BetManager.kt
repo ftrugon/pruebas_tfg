@@ -3,28 +3,30 @@ package com.pruebas.pokerLogic
 class BetManager {
 
 
-    val makedBets = mutableListOf<Bet>()
+    val madeBets = mutableListOf<Bet>()
 
-
-    fun makeBet(jugador: Player, cantidad: Int) {
-        makedBets.add(Bet(jugador, cantidad))
+    fun makeBet(player: Player, amount: Int) {
+        madeBets.add(Bet(player, amount))
     }
 
-    fun calculateTotalAmount(): Int {
-        return makedBets.sumOf { it.cantity }
+    fun totalAmount(): Int {
+        return madeBets.sumOf{ it.cantity }
     }
 
-    fun betsPerPlayer(jugador: Player): List<Bet> {
-        return makedBets.filter { it.player == jugador }
+    fun betsByPlayer(player: Player): List<Bet> {
+        return madeBets.filter { it.player == player }
     }
 
-    fun totalAmountBetPerPlayer(jugador: Player): Int {
-        return makedBets.filter { it.player == jugador }.sumOf { it.cantity }
+    fun totalBetByPlayer(player: Player): Int {
+        return madeBets.filter { it.player == player }.sumOf { it.cantity }
+    }
+
+    fun getCurrentBet(player: Player): Int {
+        return totalBetByPlayer(player)
     }
 
     fun clear() {
-        makedBets.clear()
+        madeBets.clear()
     }
-
 
 }

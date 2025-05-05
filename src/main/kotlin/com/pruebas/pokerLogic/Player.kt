@@ -8,14 +8,14 @@ data class Player(
     var dinero:Int,
     var cards: MutableList<Card> = mutableListOf<Card>(),
     var hand: Hand? = null,
-    var hasFolded:Boolean = false,
+    var playerState: PlayerState = PlayerState.NOT_READY, // reemplazar por PlayerState, notReady, ready, retired, banned
     var isSmallBlind:Boolean = false,
     var isBigBlind:Boolean = false,
-    var isReady:Boolean = false,
+    var isReadyToPlay:Boolean = false,
 ){
     fun resetForNewHand() {
         cards.clear()
-        hasFolded = false
+        playerState = PlayerState.NOT_READY
     }
 
     fun giveCard(card: Card) {
@@ -23,6 +23,6 @@ data class Player(
     }
 
     fun fold() {
-        hasFolded = true
+        playerState = PlayerState.RETIRED
     }
 }

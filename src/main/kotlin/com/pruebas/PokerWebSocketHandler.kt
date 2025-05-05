@@ -5,40 +5,46 @@ import com.pruebas.pokerLogic.Card
 import com.pruebas.pokerLogic.Deck
 import com.pruebas.pokerLogic.HandManager
 import com.pruebas.pokerLogic.Player
+import com.pruebas.pokerLogic.PlayerState
 import com.pruebas.pokerLogic.PotManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
-import java.util.concurrent.Executors
 
 
 class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler() {
 
     private val players = mutableListOf<Player>()
-    private val activePlayers = players
-
-    private var currentPlayerIndex = 0
+    private var activePlayers = mutableListOf<Player>()
     private var handManager = HandManager()
     private var betManager = BetManager()
     private var potManager = PotManager(betManager)
     private var deck = Deck()
     private var communityCards = mutableListOf<Card>()
-
     private var gameActive = false
     private var dealerIndex = 0
+    private var actualPlayerIndex = dealerIndex + 1
+
+
+    var smallBlindAmount = 2
+    var bigBlindAmount = 5
+
+    var gameState = "ronda de apuestas" // enum class para estar en ronda dde aapuestas o otra cosa
+    var actualTurn = "preflop" // enum class para cadda rondda
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
         players.add(Player(session,"",0))
 
+        println(players)
     }
 
-    private fun startRound(){
-
+    private fun assignRoles(){
         communityCards.clear()
 
         dealerIndex = (dealerIndex + 1) % players.size
+        actualPlayerIndex = dealerIndex
         val smallBlindIndex = (dealerIndex + 1) % players.size
         val bigBlindIndex = (dealerIndex + 2) % players.size
 
@@ -54,66 +60,65 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         deck.fillDeck()
         deck.shuffle()
 
-        giveCards()
+    }
 
-        preFlop()
-        flop()
-        turn()
-        river()
-        showdown()
+    fun giveCards(){
+        players.forEach {
+            val card1 = deck.drawCard()
+            val card2 = deck.drawCard()
+            it.giveCard(card1)
+            it.giveCard(card2)
+
+            val messageToSend = Message(MessageType.PLAYER_CARDS,listOf(card1,card2).toString())
+            val jsonMesagge = Json.encodeToString(messageToSend)
+            it.session.sendMessage(TextMessage(jsonMesagge))
+
+        }
+    }
+
+    fun betBlinds(){
+
+        val smallBlindPlayer = activePlayers.find { it.isSmallBlind }
+        if(smallBlindPlayer == null){
+            throw NullPointerException("Player not found")
+        }
+        broadcast(Message(MessageType.TEXT_MESSAGE,"${smallBlindPlayer.name} was small blind, has bet $smallBlindAmount"))
+        betManager.makeBet(smallBlindPlayer,smallBlindAmount)
+
+        val bigBlindPlayer = activePlayers.find { it.isBigBlind }
+        if(bigBlindPlayer == null){
+            throw NullPointerException("Player not found")
+        }
+        broadcast(Message(MessageType.TEXT_MESSAGE,"${bigBlindPlayer.name} was big blind, has bet $bigBlindAmount"))
+        betManager.makeBet(bigBlindPlayer,bigBlindAmount)
+
+
+        actualPlayerIndex += 3
+
+    }
+
+    private fun startRound(){
+
+        gameActive = true
+        activePlayers = players
+        assignRoles()
+        giveCards()
+        betBlinds()
 
     }
 
     private fun endRound(){
-        players.forEach { it.isReady = false }
-    }
 
-    private fun betRound(){
-        if (activePlayers.isEmpty()) return
+        players.forEach {
+            it.isReadyToPlay = false
+            
+            it.playerState = PlayerState.NOT_READY
 
-        var lastBet = 0
-        var index = 0
-        var numPlayersWhoCalled = 0
-
-
-        while (numPlayersWhoCalled < activePlayers.size){
-            val player = activePlayers[index % activePlayers.size]
-
-
-            if (player.dinero <= 0) {
-                numPlayersWhoCalled++
-                index++
-                continue
+            if (it.dinero <= bigBlindAmount){
+                it.session.close()
             }
-
-            println("Turno de ${player.name} (dinero: ${player.dinero})")
-            println("Tus cartas")
-            println()
-            for (carta in player.cards) {
-                print("$carta, ")
-            }
-            println(" ---> Tu mano actual tiene ${player.hand?.ranking}")
-            println("1. Foldear")
-            println("2. Apostar / Igualar (mínimo para igualar: $lastBet)")
-
-            // EN LUGAR de readdln aqui tiene quee ir algo para esperar un tiempo
-            // mas que esperar, una instruccion que se ejecute cuanmdo el usuario finalmente le envie una señal al servidor del tipo correspondiente
-            // y si no la envia en 30 secs foldea automatico
-            // crear otra clase para la accion que se va a realizar
-
-            // betPayload
-            // betType --> otra data class
-            // amount --> realmente esto solo te sirve si la accion es un raise
-            // me da pereza hacer la clase y buscar informacion ahora mismo, por eso la razon de comentar esto
-            val opcion = readln().toIntOrNull()
-
-
-
-
         }
 
-
-        broadcast(Message(MessageType.TEXT_MESSAGE,"RONDA DE APUESTAS"))
     }
 
     private fun addToCommunityCards(numCards: Int){
@@ -124,63 +129,18 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     }
 
     private fun calculateHands(){
-        players.forEach {player ->
+        activePlayers.forEach {player ->
             player.hand = handManager.calculteHand((player.cards + communityCards).sortedByDescending { it.value.weight })
+
             val mssg = Message(MessageType.TEXT_MESSAGE,player.hand?.ranking.toString())
             val jsonmsg = Json.encodeToString(mssg)
             player.session.sendMessage(TextMessage(jsonmsg))
         }
     }
 
-    fun preFlop(){
-        betRound()
-    }
-
-    fun flop(){
-        addToCommunityCards(3)
-        calculateHands()
-        betRound()
-    }
-
-    fun turn(){
-        addToCommunityCards(1)
-        calculateHands()
-        betRound()
-    }
-
-    fun river(){
-        addToCommunityCards(1)
-        calculateHands()
-        betRound()
-    }
-
-    fun showdown(){
-
-        // repartir premios -->
-        endRound()
-    }
-
-
-    fun giveCards(){
-        players.forEach {
-            val card1 = deck.drawCard()
-            val card2 = deck.drawCard()
-            it.giveCard(card1)
-            it.giveCard(card2)
-
-            val messageToSend = Message(MessageType.PLAYER_CARDS,listOf(card1,card2).toString())
-
-            val jsonMesagge = Json.encodeToString(messageToSend)
-
-            it.session.sendMessage(TextMessage(jsonMesagge))
-
-        }
-    }
-
-
     private fun allPlayersReady(): Boolean {
         players.forEach {
-            if (!it.isReady) return false
+            if (!it.isReadyToPlay) return false
         }
         return true
     }
@@ -192,61 +152,138 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     }
 
+    private fun getPlayerInfo(player: Player,msgPayload: String){
+        val playerInfo = Json.decodeFromString<PlayerInfoMessage>(msgPayload)
+
+        player.name = playerInfo.name
+        player.dinero = playerInfo.dinero
+
+        broadcast(Message(MessageType.PLAYER_JOIN, player.name))
+
+    }
+
+    private fun playerReady(player: Player){
+        if (!gameActive){
+            player.isReadyToPlay = !player.isReadyToPlay
+            broadcast(Message(MessageType.PLAYER_READY,player.name))
+
+            if (players.size >= 3 && allPlayersReady()) {
+                // METODO PARA EMPEZAR LA PARTIDA O LO QUE SEA
+                broadcast(Message(MessageType.TEXT_MESSAGE, "LA PARTIDA VA A EMPEZAR"))
+                startRound()
+            }
+        }
+    }
+
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val action = message.payload
 
         val playerToChange = players.find { it.session == session }
 
+        if (playerToChange == null) {
+            throw NullPointerException("Player ${session.id} not found")
+        }
+
         val message = Json.decodeFromString<Message>(action)
 
         if (message.messageType == MessageType.PLAYER_INFO){
-            val playerInfo = Json.decodeFromString<PlayerInfoMessage>(message.content)
-
-            playerToChange?.name = playerInfo.name
-            playerToChange?.dinero = playerInfo.dinero
-
-            broadcast(Message(MessageType.PLAYER_JOIN, "${playerToChange?.name}"))
-
-            println(playerToChange)
-
+            getPlayerInfo(playerToChange,message.content)
         }
 
-
         // TODO LIST --> EL RESTO DE CASO DEL TIPO DE LOS MENSAJES,
-
         // PLAYER_READY --> Notificar al resto de los usuarios que un usuario esta listo
-
         if (message.messageType == MessageType.PLAYER_READY){
-
-            if (!gameActive){
-                playerToChange?.isReady = !playerToChange!!.isReady
-                broadcast(Message(MessageType.PLAYER_READY,playerToChange!!.name))
-
-                if (players.size >= 3 && allPlayersReady()) {
-                    // METODO PARA EMPEZAR LA PARTIDA O LO QUE SEA
-                    startRound()
-                    broadcast(Message(MessageType.TEXT_MESSAGE, "LA PARTIDA VA A EMPEZAR"))
-                }
-            }
-
+            playerReady(playerToChange)
         }
 
         // TEXT_MESSAGE, --> Poner en un chat dentro del cliente el mensaje
-
-
         if (message.messageType == MessageType.TEXT_MESSAGE){
             broadcast(message)
         }
 
-
-        // ESTOS 2 PUNTOS SON LOS COMPLICADOS, DE MOMENTO COMINUCACION CON EN CLIETNE
-
+        // ESTOS 2 PUNTOS SON LOS COMPLICADOS
         // ACTION, --> Las distintas acciones que puede hace el usuario (fold, call, raise)
 
+        if (message.messageType == MessageType.ACTION){
+
+            val betPayload = Json.decodeFromString<BetPayload>(message.content)
+
+            receiveBetAction(playerToChange,betPayload)
+
+            // compruebo si los jugadores estan listos, y el turno de cada jugador
+        }
+
         println("Acción recibida: $action")
+    }
+
+
+
+    private fun checkIfPassRound(): Boolean{
+        players.forEach {
+            if (it.playerState == PlayerState.NOT_READY) return false
+        }
+        return true
+    }
+
+    private fun allPlayersToNotReady(){
+        activePlayers.forEach {
+            it.playerState = PlayerState.NOT_READY
+        }
+    }
+
+    private fun newRound(){
+        // dependiendo de si esta en el preflop, flop o river, sacara 3, 1 o no sacara cartas
+        // por el momento paara probar solo voy a sacar 1 carta
+
+        allPlayersToNotReady()
+        calculateHands()
+        addToCommunityCards(1)
 
     }
 
+
+    fun receiveBetAction(player: Player, action: BetPayload){
+
+        if (gameActive){
+
+            if (player == activePlayers[actualPlayerIndex % activePlayers.size]){
+
+                broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' bet ${action.amount}"))
+
+                // falta poner la apuesta en el betmanager
+
+                if (action.action == BetAction.RAISE  && action.amount > 0){
+
+                    allPlayersToNotReady()
+
+                    player.playerState = PlayerState.READY
+
+                }else if (action.action == BetAction.CALL){
+
+                    player.playerState = PlayerState.READY
+                    // le restara al jugador la cantidad de la ultima apuesta - la cantidad de su ultima apuesta
+
+                }else if (action.action == BetAction.FOLD){
+
+                    activePlayers.remove(player)
+                    player.playerState = PlayerState.RETIRED
+
+                }
+
+                if (checkIfPassRound()){
+                    newRound()
+                }
+                actualPlayerIndex++
+
+            }else{
+                player.session.sendMessage(TextMessage(Json.encodeToString(Message(MessageType.TEXT_MESSAGE,"Is not your turn"))))
+            }
+        }else{
+            val jsonMsg = Json.encodeToString(Message(MessageType.TEXT_MESSAGE,"You cant make bets right now"))
+            player.session.sendMessage(TextMessage(jsonMsg))
+        }
+
+    }
 
     private fun broadcast(message: Message) {
         val jsonMessage = Json.encodeToString<Message>(message)

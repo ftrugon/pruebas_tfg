@@ -5,7 +5,7 @@ class PotManager(private val betManager: BetManager) {
     fun calculateSidePots(): List<Pot> {
         // Mapa de jugador -> cantidad total apostada
         val betsPerPlayer = betManager
-            .makedBets
+            .madeBets
             .groupBy { it.player }
             .mapValues { it.value.sumOf { a -> a.cantity } }
             .toMutableMap()
