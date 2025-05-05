@@ -7,7 +7,7 @@ class PotManager(private val betManager: BetManager) {
         val betsPerPlayer = betManager
             .madeBets
             .groupBy { it.player }
-            .mapValues { it.value.sumOf { a -> a.cantity } }
+            .mapValues { it.value.sumOf { a -> a.amount } }
             .toMutableMap()
 
         val pots = mutableListOf<Pot>()

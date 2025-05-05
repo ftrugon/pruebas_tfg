@@ -3,7 +3,7 @@ package com.pruebas.pokerLogic
 class HandManager {
 
 
-    fun calculteHand(sortedCards: List<Card>): Hand{
+    fun calculateHand(sortedCards: List<Card>): Hand{
 
         when {
 

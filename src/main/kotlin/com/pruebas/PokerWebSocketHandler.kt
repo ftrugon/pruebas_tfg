@@ -16,6 +16,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler() {
 
     private val players = mutableListOf<Player>()
+    private var playersToKick = mutableListOf<Player>()
     private var activePlayers = mutableListOf<Player>()
     private var handManager = HandManager()
     private var betManager = BetManager()
@@ -26,12 +27,11 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     private var dealerIndex = 0
     private var actualPlayerIndex = dealerIndex + 1
 
+    private var smallBlindAmount = 2
+    private var bigBlindAmount = 5
 
-    var smallBlindAmount = 2
-    var bigBlindAmount = 5
-
-    var gameState = "ronda de apuestas" // enum class para estar en ronda dde aapuestas o otra cosa
-    var actualTurn = "preflop" // enum class para cadda rondda
+    private var gameState = "ronda de apuestas" // enum class para estar en ronda dde aapuestas o otra cosa
+    private var actualTurn = TurnType.PRE_FLOP // enum class para cadda rondda
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
@@ -62,7 +62,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     }
 
-    fun giveCards(){
+    private fun giveCards(){
         players.forEach {
             val card1 = deck.drawCard()
             val card2 = deck.drawCard()
@@ -76,7 +76,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         }
     }
 
-    fun betBlinds(){
+    private fun betBlinds(){
 
         val smallBlindPlayer = activePlayers.find { it.isSmallBlind }
         if(smallBlindPlayer == null){
@@ -107,20 +107,6 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     }
 
-    private fun endRound(){
-
-        players.forEach {
-            it.isReadyToPlay = false
-            
-            it.playerState = PlayerState.NOT_READY
-
-            if (it.dinero <= bigBlindAmount){
-                it.session.close()
-            }
-        }
-
-    }
-
     private fun addToCommunityCards(numCards: Int){
         for (i in 0..<numCards){
             communityCards.add(deck.drawCard())
@@ -130,7 +116,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     private fun calculateHands(){
         activePlayers.forEach {player ->
-            player.hand = handManager.calculteHand((player.cards + communityCards).sortedByDescending { it.value.weight })
+            player.hand = handManager.calculateHand((player.cards + communityCards).sortedByDescending { it.value.weight })
 
             val mssg = Message(MessageType.TEXT_MESSAGE,player.hand?.ranking.toString())
             val jsonmsg = Json.encodeToString(mssg)
@@ -216,8 +202,6 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         println("Acción recibida: $action")
     }
 
-
-
     private fun checkIfPassRound(): Boolean{
         players.forEach {
             if (it.playerState == PlayerState.NOT_READY) return false
@@ -231,16 +215,71 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         }
     }
 
+    fun chooseWinners(){
+
+        val sidePots = potManager.calculateSidePots()
+
+        for (i in sidePots.indices) {
+            val winners = handManager.compareHands(sidePots[i].players)
+            val prize = sidePots[i].amount / winners.size
+            winners.forEach {
+                broadcast(Message(MessageType.TEXT_MESSAGE,"${it.name} es un gandor del pot $i y se lleva $prize"))
+                it.dinero += prize
+            }
+        }
+
+    }
+
+    private fun endRound(){
+
+        players.forEach {
+            it.isReadyToPlay = false
+            it.cards.clear()
+            it.playerState = PlayerState.NOT_READY
+
+            if (it.dinero <= bigBlindAmount){
+                it.session.close()
+            }
+        }
+
+        gameActive = false
+
+    }
+
     private fun newRound(){
         // dependiendo de si esta en el preflop, flop o river, sacara 3, 1 o no sacara cartas
         // por el momento paara probar solo voy a sacar 1 carta
 
+        if (actualTurn == TurnType.SHOWDOWN || activePlayers.size == 1){
+            chooseWinners()
+            endRound()
+            return
+        }
+
+        if (actualTurn == TurnType.RIVER){
+            actualTurn = TurnType.SHOWDOWN
+        }
+
+        if (actualTurn == TurnType.TURN){
+            actualTurn = TurnType.RIVER
+            addToCommunityCards(1)
+        }
+
+        if (actualTurn == TurnType.FLOP){
+            actualTurn = TurnType.TURN
+            addToCommunityCards(1)
+        }
+
+        if (actualTurn == TurnType.PRE_FLOP){
+            addToCommunityCards(3)
+            actualTurn = TurnType.FLOP
+        }
+
+
         allPlayersToNotReady()
         calculateHands()
-        addToCommunityCards(1)
 
     }
-
 
     fun receiveBetAction(player: Player, action: BetPayload){
 
@@ -255,12 +294,29 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
                 if (action.action == BetAction.RAISE  && action.amount > 0){
 
                     allPlayersToNotReady()
-
                     player.playerState = PlayerState.READY
+
+                    betManager.makeBet(player,action.amount)
 
                 }else if (action.action == BetAction.CALL){
 
                     player.playerState = PlayerState.READY
+
+                    val lastBet = betManager.madeBets.lastOrNull()
+                    val lastBetOfPlayer = betManager.betsByPlayer(player).lastOrNull()
+
+                    val amountToBet = if (lastBetOfPlayer != null && lastBet != null) {
+                        lastBet.amount - lastBetOfPlayer.amount
+                    } else {
+                        lastBet?.amount ?: 0
+                    }
+
+                    if (amountToBet > 0) {
+                        betManager.makeBet(player, amountToBet)
+                    }
+
+                    betManager.makeBet(player,amountToBet)
+
                     // le restara al jugador la cantidad de la ultima apuesta - la cantidad de su ultima apuesta
 
                 }else if (action.action == BetAction.FOLD){

@@ -10,7 +10,7 @@ class BetManager {
     }
 
     fun totalAmount(): Int {
-        return madeBets.sumOf{ it.cantity }
+        return madeBets.sumOf{ it.amount }
     }
 
     fun betsByPlayer(player: Player): List<Bet> {
@@ -18,7 +18,7 @@ class BetManager {
     }
 
     fun totalBetByPlayer(player: Player): Int {
-        return madeBets.filter { it.player == player }.sumOf { it.cantity }
+        return madeBets.filter { it.player == player }.sumOf { it.amount }
     }
 
     fun getCurrentBet(player: Player): Int {
