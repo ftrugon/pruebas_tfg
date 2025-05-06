@@ -259,7 +259,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 //        }
 
         if (actualTurn == TurnType.TURN){
-            actualTurn = TurnType.RIVER
+            actualTurn = TurnType.SHOWDOWN
             addToCommunityCards(1)
         }
 
