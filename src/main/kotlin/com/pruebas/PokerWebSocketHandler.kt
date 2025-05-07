@@ -100,7 +100,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     private fun startRound(){
 
         gameActive = true
-        activePlayers = players
+        activePlayers = players.toMutableList()
         assignRoles()
         giveCards()
         betBlinds()
@@ -182,7 +182,12 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
         // TEXT_MESSAGE, --> Poner en un chat dentro del cliente el mensaje
         if (message.messageType == MessageType.TEXT_MESSAGE){
-            broadcast(message)
+
+            if (message.content.isNotEmpty()){
+                val msgToSend = Message(MessageType.TEXT_MESSAGE,"${playerToChange.name}: ${message.content}")
+                broadcast(msgToSend)
+            }
+
         }
 
         // ESTOS 2 PUNTOS SON LOS COMPLICADOS
@@ -234,11 +239,14 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
             it.isReadyToPlay = false
             it.cards.clear()
             it.playerState = PlayerState.NOT_READY
+            it.currentBet = 0
 
             if (it.tokens <= bigBlindAmount){
                 it.session.close()
             }
         }
+
+        betManager.clear()
 
         gameActive = false
 
@@ -288,7 +296,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
                 if (action.action == BetAction.RAISE  && action.amount > 0){
 
                     if (action.amount <= player.tokens){
-                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' bet ${action.amount}"))
+                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' raised ${action.amount}"))
 
                         allPlayersToNotReady()
                         player.playerState = PlayerState.READY
@@ -304,27 +312,21 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
                     player.playerState = PlayerState.READY
 
-                    val lastBet = betManager.madeBets.lastOrNull()
-                    val lastBetOfPlayer = betManager.betsByPlayer(player).lastOrNull()
+                    val maxBet = activePlayers.maxOfOrNull { it.currentBet } ?: 0
+                    val amountToCall = maxOf(0, maxBet - player.currentBet)
 
-                    val amountToBet = if (lastBetOfPlayer != null && lastBet != null) {
-                        lastBet.amount - lastBetOfPlayer.amount
-                    } else {
-                        lastBet?.amount ?: 0
-                    }
-
-                    if (amountToBet > player.tokens){
-
-                        sendMessageToPlayer(player, Message(MessageType.TEXT_MESSAGE,"You dont have enough tokens, all your tokens will be bet"))
-                        betManager.makeBet(player,player.tokens)
-
-                    }else if (amountToBet > 0) {
-
-                        betManager.makeBet(player, amountToBet)
-                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' bet $amountToBet"))
-
-                    }else {
-                        broadcast(Message(MessageType.TEXT_MESSAGE,"'${player.name}' checked"))
+                    when {
+                        amountToCall > player.tokens -> {
+                            sendMessageToPlayer(player, Message(MessageType.TEXT_MESSAGE, "You don't have enough tokens, going all-in"))
+                            betManager.makeBet(player, player.tokens)
+                        }
+                        amountToCall > 0 -> {
+                            betManager.makeBet(player, amountToCall)
+                            broadcast(Message(MessageType.TEXT_MESSAGE, "'${player.name}' called with $amountToCall"))
+                        }
+                        else -> {
+                            broadcast(Message(MessageType.TEXT_MESSAGE, "'${player.name}' checked"))
+                        }
                     }
 
                 }else if (action.action == BetAction.FOLD){

@@ -30,4 +30,5 @@ class TokenService {
 
         return jwtEncoder.encode(JwtEncoderParameters.from(payload)).tokenValue;
     }
+
 }
