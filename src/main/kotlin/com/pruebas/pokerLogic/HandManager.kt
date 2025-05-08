@@ -153,7 +153,14 @@ class HandManager {
     // -1 es mejor jugadorUno
     // 0 es empate
     // 1 es mejor jugadorDos
-    fun bestOfTwoHands(playerOne:Player, playerTwo:Player):Int{
+    private fun bestOfTwoHands(playerOne:Player, playerTwo:Player):Int{
+
+        // Si alguno de los 2 jugadores ha foldeado, se elige al otro como ganador sin importar su mano
+        if (playerOne.playerState == PlayerState.RETIRED){
+            return 1
+        }else if(playerTwo.playerState == PlayerState.RETIRED){
+            return -1
+        }
 
         val handPlayerOne = playerOne.hand!!
         val handPlayerTwo = playerTwo.hand!!

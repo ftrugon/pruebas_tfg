@@ -13,6 +13,10 @@ class BetManager {
         player.tokens -= realAmount
         player.currentBet += realAmount
 
+        if (player.tokens <= 0){
+            player.playerState = PlayerState.ALL_IN
+        }
+
         madeBets.add(Bet(player, realAmount))
     }
 

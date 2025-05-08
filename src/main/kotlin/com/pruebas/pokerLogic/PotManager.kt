@@ -23,6 +23,7 @@ class PotManager(private val betManager: BetManager) {
                 betsPerPlayer[it] = betsPerPlayer[it]!! - min
                 if (betsPerPlayer[it] == 0) betsPerPlayer.remove(it)
             }
+
         }
 
         return pots
