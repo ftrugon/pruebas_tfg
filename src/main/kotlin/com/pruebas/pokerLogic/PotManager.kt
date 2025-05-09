@@ -3,31 +3,36 @@ package com.pruebas.pokerLogic
 class PotManager(private val betManager: BetManager) {
 
     fun calculateSidePots(): List<Pot> {
-        // Mapa de jugador -> cantidad total apostada
-        val betsPerPlayer = betManager
-            .madeBets
+        // Apuestas totales por jugador (incluyendo los que se retiraron)
+        val totalBets = betManager.madeBets
             .groupBy { it.player }
-            .mapValues { it.value.sumOf { a -> a.amount } }
+            .mapValues { (_, bets) -> bets.sumOf { it.amount } }
             .toMutableMap()
 
-        val pots = mutableListOf<Pot>()
+        val sidePots = mutableListOf<Pot>()
 
+        while (totalBets.isNotEmpty()) {
+            val minBet = totalBets.values.minOrNull() ?: break
 
-        while (betsPerPlayer.isNotEmpty()) {
-            val min = betsPerPlayer.values.minOrNull() ?: break
-            val players = betsPerPlayer.filterValues { it >= min }.keys.toList()
-            val amount = min * players.size
-            pots.add(Pot(amount, players))
+            // Jugadores que aún tienen al menos minBet apostado
+            val contributors = totalBets.filterValues { it >= minBet }.keys
 
-            players.forEach {
-                betsPerPlayer[it] = betsPerPlayer[it]!! - min
-                if (betsPerPlayer[it] == 0) betsPerPlayer.remove(it)
+            // El dinero lo ponen todos los que aún tienen dinero en juego,
+            // pero solo los que no están retirados pueden ganar ese bote.
+            val eligiblePlayers = contributors.filter { it.playerState != PlayerState.RETIRED }
+
+            val potAmount = minBet * contributors.size
+            sidePots.add(Pot(potAmount, eligiblePlayers))
+
+            contributors.forEach { player ->
+                totalBets.computeIfPresent(player) { _, amount ->
+                    val newAmount = amount - minBet
+                    if (newAmount <= 0) null else newAmount
+                }
             }
-
         }
 
-        return pots
+        return sidePots
     }
-
 
 }

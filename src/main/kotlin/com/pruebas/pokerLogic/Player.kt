@@ -3,7 +3,7 @@ package com.pruebas.pokerLogic
 import org.springframework.web.socket.WebSocketSession
 
 data class Player(
-    val session: WebSocketSession,
+    var session: WebSocketSession? = null,
     var name:String,
     var tokens:Int,
 ){

@@ -72,7 +72,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
             val jsonListOfCards = Json.encodeToString<MutableList<Card>>(it.cards)
             val messageToSend = Message(MessageType.PLAYER_CARDS,jsonListOfCards)
             val jsonMesagge = Json.encodeToString(messageToSend)
-            it.session.sendMessage(TextMessage(jsonMesagge))
+            it.session?.sendMessage(TextMessage(jsonMesagge))
 
         }
     }
@@ -134,9 +134,24 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        println("Conexion cerrada: ${session.id}")
-        players.removeIf { it.session == session }
-        super.afterConnectionClosed(session, status)
+        println("Se cerrara esta conexion despues de la ronda: ${session.id}")
+
+        val sessionPlayer = players.find { it.session == session }
+
+        if (gameActive){
+            sessionPlayer?.session = null
+
+            println(sessionPlayer)
+            println(players[actualPlayerIndex % players.size])
+
+            if (sessionPlayer == players[actualPlayerIndex % players.size]){
+                sessionPlayer.playerState = PlayerState.RETIRED
+                activePlayers.remove(sessionPlayer)
+            }
+        }else {
+            players.remove(sessionPlayer)
+            super.afterConnectionClosed(session, status)
+        }
 
     }
 
@@ -211,6 +226,13 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     private fun checkIfPassRound(): Boolean{
         players.forEach {
+
+
+            if (it.session == null){
+                it.playerState = PlayerState.RETIRED
+                activePlayers.remove(it)
+            }
+
             if (it.playerState == PlayerState.NOT_READY) return false
         }
         return true
@@ -222,7 +244,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
         }
     }
 
-    fun chooseWinners(){
+    private fun chooseWinners(){
 
         val sidePots = potManager.calculateSidePots()
 
@@ -245,10 +267,22 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
             it.playerState = PlayerState.NOT_READY
             it.currentBet = 0
 
-            if (it.tokens <= bigBlindAmount){
-                it.session.close()
+            if (it.session == null){
+                playersToKick.add(it)
             }
+            if (it.tokens <= bigBlindAmount){
+                playersToKick.remove(it)
+            }
+
         }
+
+
+        playersToKick.forEach {
+            it.session?.close()
+        }
+
+        players.removeAll(playersToKick)
+
 
         actualTurn = TurnType.PRE_FLOP
         betManager.clear()
@@ -292,7 +326,6 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     }
 
-
     private fun checkAllIn(player: Player){
         if (player.playerState == PlayerState.ALL_IN){
             activePlayers.remove(player)
@@ -302,6 +335,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     private fun receiveBetAction(player: Player, action: BetPayload){
 
         if (gameActive){
+
 
             if (player == activePlayers[actualPlayerIndex % activePlayers.size]){
 
@@ -383,12 +417,12 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
     private fun sendMessageToPlayer(player: Player, message: Message){
         val jsonMsg = Json.encodeToString(message)
-        player.session.sendMessage(TextMessage(jsonMsg))
+        player.session?.sendMessage(TextMessage(jsonMsg))
     }
 
     private fun broadcast(message: Message) {
         val jsonMessage = Json.encodeToString<Message>(message)
-        players.forEach { it.session.sendMessage(TextMessage(jsonMessage)) }
+        players.forEach { it.session?.sendMessage(TextMessage(jsonMessage)) }
     }
 
 }
