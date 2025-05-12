@@ -44,8 +44,8 @@ class UsuarioService : UserDetailsService {
         // COMPROBACIONES
         // campos
         if (registrarUsuarioDTO.username.isBlank()
-            || registrarUsuarioDTO.email.isBlank()
-            || registrarUsuarioDTO.password.isBlank()) {
+            || registrarUsuarioDTO.password.isBlank()
+            || registrarUsuarioDTO.passwordRepeat.isBlank()) {
             throw BadRequestException("Uno o más campos vacíos")
         }
 
@@ -61,12 +61,6 @@ class UsuarioService : UserDetailsService {
         if(usuarioRepository.findByUsername(registrarUsuarioDTO.username).isPresent) {
             throw AlreadyExistException("Usuario ${registrarUsuarioDTO.username} ya está registrado")
         }
-
-        // rol user o admin
-        if(registrarUsuarioDTO.rol != null && registrarUsuarioDTO.rol != "USER" && registrarUsuarioDTO.rol != "ADMIN" ) {
-            throw BadRequestException("ROL: ${registrarUsuarioDTO.rol} incorrecto")
-        }
-
 
         // meter al usuario en la bd
         val usuario = UsuarioDTOParser.registrarDTOToUsuario(registrarUsuarioDTO)

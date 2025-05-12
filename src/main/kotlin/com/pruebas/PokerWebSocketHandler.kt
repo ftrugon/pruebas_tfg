@@ -339,7 +339,7 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
 
             if (player == activePlayers[actualPlayerIndex % activePlayers.size]){
 
-                if (action.action == BetAction.RAISE  && action.amount > 0){
+                if (action.action == BetAction.RAISE && action.amount > 0){
 
                     val maxBet = activePlayers.maxOfOrNull { it.currentBet } ?: 0
                     val amountToCall = maxOf(0, maxBet - player.currentBet)

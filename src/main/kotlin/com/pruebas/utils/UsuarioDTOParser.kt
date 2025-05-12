@@ -10,16 +10,13 @@ object UsuarioDTOParser {
         return Usuario(
             null,
             registrarUsuarioDTO.username,
-            registrarUsuarioDTO.password,
-            registrarUsuarioDTO.email,
-            registrarUsuarioDTO.rol
+            registrarUsuarioDTO.password
         )
     }
 
     fun usuarioToDto(usuario: Usuario): UsuarioDTO {
         return UsuarioDTO(
-            usuario.username,
-            usuario.email
+            usuario.username
         )
     }
 

@@ -1,5 +1,6 @@
 package com.pruebas.controller
 
+import com.pruebas.model.Game
 import com.pruebas.service.GameService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -23,8 +24,8 @@ class GameController {
     }
 
     @GetMapping
-    fun hola():String {
-        return "Hola"
+    fun getGames():List<Game> {
+        return gameService.getAllGames()
     }
 
     @PutMapping

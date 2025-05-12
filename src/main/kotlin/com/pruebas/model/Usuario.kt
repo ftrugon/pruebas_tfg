@@ -11,8 +11,6 @@ data class Usuario(
     @Indexed(unique = true)
     val username: String,
     var password: String,
-    @Indexed(unique = true)
-    val email: String,
     val roles: String? = "USER"
 ) {
 }
