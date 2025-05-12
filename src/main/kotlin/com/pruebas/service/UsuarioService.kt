@@ -68,6 +68,7 @@ class UsuarioService : UserDetailsService {
         usuarioRepository.save(usuario)
 
         return UsuarioDTOParser.usuarioToDto(usuario)
+
     }
 
 }
