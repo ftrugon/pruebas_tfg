@@ -11,6 +11,7 @@ data class Usuario(
     @Indexed(unique = true)
     val username: String,
     var password: String,
+    var tokens:Int,
     val roles: String? = "USER"
 ) {
 }

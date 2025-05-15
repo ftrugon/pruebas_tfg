@@ -6,7 +6,7 @@ import com.pruebas.dto.UsuarioDTO
 import com.pruebas.error.exceptions.UnauthorizedException
 import com.pruebas.model.Usuario
 import com.pruebas.repository.UsuarioRepository
-import com.pruebas.utils.UsuarioDTOParser
+import com.pruebas.utils.DTOParser
 import org.apache.coyote.BadRequestException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.userdetails.UserDetails
@@ -63,11 +63,11 @@ class UsuarioService : UserDetailsService {
         }
 
         // meter al usuario en la bd
-        val usuario = UsuarioDTOParser.registrarDTOToUsuario(registrarUsuarioDTO)
+        val usuario = DTOParser.registrarDTOToUsuario(registrarUsuarioDTO)
         usuario.password = passwordEncoder.encode(registrarUsuarioDTO.password)
         usuarioRepository.save(usuario)
 
-        return UsuarioDTOParser.usuarioToDto(usuario)
+        return DTOParser.usuarioToDto(usuario)
 
     }
 
