@@ -15,11 +15,19 @@ class TableService {
     @Autowired
     private lateinit var tableRepository: TableRepository
 
-    fun createTable(tableToInsert: InsertTableDTO){
-        // Comprobaciones: no hace falta
+    fun createTable(tableToInsert: InsertTableDTO): Table{
+
+
+        if (tableToInsert.title.isEmpty()){
+            throw BadRequestException("Title cannot be empty")
+        }
+
+        if (tableToInsert.bigBlind < 2){
+            throw BadRequestException("Big blind cannot be less than 2")
+        }
 
         val table = DTOParser.insertTableDTOToTable(tableToInsert)
-        tableRepository.save(table)
+        return tableRepository.save(table)
     }
 
     fun getAllTables(): List<Table>{

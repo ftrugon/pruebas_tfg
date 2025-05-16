@@ -11,8 +11,27 @@ class CustomUrlWebSocketHandler(
 ) : WebSocketHandler {
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
-        val gameId = session.uri?.path?.split("/")?.lastOrNull() ?: return
-        val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId) }
+
+        val listOfParams = session.uri?.path?.split("/") ?: return
+        val gameId: String
+        try {
+            gameId = listOfParams[listOfParams.size - 2]
+        }catch (e:Exception){
+            print("gameId did not exist on url")
+            return
+        }
+
+        val bigBlindAmount: Int
+        try {
+            bigBlindAmount = listOfParams[listOfParams.size - 1].toInt()
+        }catch (e:Exception){
+            print("big blind amount did not exist on url")
+            return
+        }
+
+        //val gameId = session.uri?.path?.split("/")?.lastOrNull() ?: return
+
+        val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId,bigBlindAmount) }
         handler.afterConnectionEstablished(session)
     }
 

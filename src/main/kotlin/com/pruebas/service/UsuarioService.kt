@@ -3,10 +3,12 @@ package com.pruebas.service
 import com.pruebas.error.exceptions.AlreadyExistException
 import com.pruebas.dto.RegistrarUsuarioDTO
 import com.pruebas.dto.UsuarioDTO
+import com.pruebas.error.exceptions.NotFoundException
 import com.pruebas.error.exceptions.UnauthorizedException
 import com.pruebas.model.Usuario
 import com.pruebas.repository.UsuarioRepository
 import com.pruebas.utils.DTOParser
+import jdk.jfr.DataAmount
 import org.apache.coyote.BadRequestException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.userdetails.UserDetails
@@ -70,5 +72,39 @@ class UsuarioService : UserDetailsService {
         return DTOParser.usuarioToDto(usuario)
 
     }
+
+    fun getByUsername(username: String): Usuario {
+        val user = usuarioRepository.findByUsername(username)
+
+        if (!user.isPresent){
+            throw NotFoundException("User $username not found")
+        }
+
+        return user.get()
+    }
+
+    fun addTokensToUser(username: String,amount: Int): UsuarioDTO {
+        val user = getByUsername(username)
+
+        user.tokens += amount
+
+        return DTOParser.usuarioToDto(usuarioRepository.save(user))
+
+    }
+
+
+    fun retireTokensToUser(username: String,amount: Int): Int {
+        val user = getByUsername(username)
+
+        if (amount >= user.tokens) {
+            user.tokens = 0
+            return 0
+        }else{
+            user.tokens -= amount
+            return user.tokens
+        }
+
+    }
+
 
 }

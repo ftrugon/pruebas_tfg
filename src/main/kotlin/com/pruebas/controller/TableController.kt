@@ -28,13 +28,13 @@ class TableController {
     fun insert(
         authentication: Authentication,
         @RequestBody tableDTO: InsertTableDTO,
-    ){
-
+    ): ResponseEntity<Table> {
+        return ResponseEntity(tableService.createTable(tableDTO) ,HttpStatus.CREATED)
     }
 
     @GetMapping("/getAll")
-    fun getTables():List<Table> {
-        return tableService.getAllTables()
+    fun getTables():ResponseEntity<List<Table>> {
+        return ResponseEntity(tableService.getAllTables(), HttpStatus.OK)
     }
 
     @PutMapping("/updateSum/{id}")

@@ -13,7 +13,7 @@ import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 
-class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler() {
+class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmount: Int) : TextWebSocketHandler() {
 
     private val players = mutableListOf<Player>()
     private var playersToKick = mutableListOf<Player>()
@@ -27,8 +27,8 @@ class PokerWebSocketHandler(private val gameId: String) : TextWebSocketHandler()
     private var dealerIndex = 0
     private var actualPlayerIndex = dealerIndex + 1
 
-    private var smallBlindAmount = 2
-    private var bigBlindAmount = 5
+    private var smallBlindAmount = bigBlindAmount / 2
+    //private var bigBlindAmount = 5
 
     private var gameState = "ronda de apuestas" // enum class para estar en ronda dde aapuestas o otra cosa
     private var actualTurn = TurnType.PRE_FLOP // enum class para cadda rondda

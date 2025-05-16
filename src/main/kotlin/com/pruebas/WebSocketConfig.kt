@@ -13,7 +13,7 @@ class WebSocketConfig : WebSocketConfigurer {
     private val games = mutableMapOf<String, PokerWebSocketHandler>()
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(CustomUrlWebSocketHandler(games), "/game/{gameid}")
+        registry.addHandler(CustomUrlWebSocketHandler(games), "/game/{gameid}/{bigBlind}")
             .setAllowedOrigins("*")
     }
 
