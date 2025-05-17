@@ -37,6 +37,7 @@ class TableController {
         return ResponseEntity(tableService.getAllTables(), HttpStatus.OK)
     }
 
+
     @PutMapping("/updateSum/{id}")
     fun updateSum(
         authentication: Authentication,

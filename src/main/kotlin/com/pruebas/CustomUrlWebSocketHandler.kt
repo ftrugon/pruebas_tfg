@@ -4,49 +4,59 @@ import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.WebSocketHandler
 import org.springframework.web.socket.WebSocketMessage
 import org.springframework.web.socket.WebSocketSession
+import kotlin.text.get
 
 
 class CustomUrlWebSocketHandler(
     private val games: MutableMap<String, PokerWebSocketHandler>
 ) : WebSocketHandler {
 
-    override fun afterConnectionEstablished(session: WebSocketSession) {
+    private fun getTableIdFromUrl(url: String): String? {
+        val listOfParams = url.split("/")
 
-        val listOfParams = session.uri?.path?.split("/") ?: return
-        val gameId: String
         try {
-            gameId = listOfParams[listOfParams.size - 2]
+            return listOfParams[listOfParams.size - 2]
         }catch (e:Exception){
             print("gameId did not exist on url")
-            return
+            return null
         }
+    }
 
-        val bigBlindAmount: Int
+    private fun getBigBlindFromUrl(url: String): Int? {
+        val listOfParams = url.split("/")
         try {
-            bigBlindAmount = listOfParams[listOfParams.size - 1].toInt()
+            return listOfParams[listOfParams.size - 1].toInt()
         }catch (e:Exception){
             print("big blind amount did not exist on url")
-            return
+            return null
         }
+    }
 
-        //val gameId = session.uri?.path?.split("/")?.lastOrNull() ?: return
+    override fun afterConnectionEstablished(session: WebSocketSession) {
+
+        val url = session.uri?.path ?: return
+        val gameId = getTableIdFromUrl(url) ?: return
+        val bigBlindAmount = getBigBlindFromUrl(url) ?: return
 
         val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId,bigBlindAmount) }
         handler.afterConnectionEstablished(session)
     }
 
     override fun handleMessage(session: WebSocketSession, message: WebSocketMessage<*>) {
-        val gameId = session.uri?.path?.split("/")?.lastOrNull() ?: return
+        val url = session.uri?.path ?: return
+        val gameId = getTableIdFromUrl(url) ?: return
         games[gameId]?.handleMessage(session, message)
     }
 
     override fun handleTransportError(session: WebSocketSession, exception: Throwable) {
-        val gameId = session.uri?.path?.split("/")?.lastOrNull() ?: return
+        val url = session.uri?.path ?: return
+        val gameId = getTableIdFromUrl(url) ?: return
         games[gameId]?.handleTransportError(session, exception)
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        val gameId = session.uri?.path?.split("/")?.lastOrNull() ?: return
+        val url = session.uri?.path ?: return
+        val gameId = getTableIdFromUrl(url) ?: return
         games[gameId]?.afterConnectionClosed(session, status)
     }
 

@@ -134,7 +134,6 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        println("Se cerrara esta conexion despues de la ronda: ${session.id}")
 
         val sessionPlayer = players.find { it.session == session }
 
@@ -149,6 +148,7 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
                 activePlayers.remove(sessionPlayer)
             }
         }else {
+            println("Connection closed -> $session")
             players.remove(sessionPlayer)
             super.afterConnectionClosed(session, status)
         }

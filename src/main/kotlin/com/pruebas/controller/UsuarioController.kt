@@ -70,6 +70,12 @@ class UsuarioController {
     }
 
 
+    @GetMapping("/myInfo")
+    fun getUserInfo(
+        authentication: Authentication
+    ): ResponseEntity<Usuario> {
+        return ResponseEntity(usuarioService.getByUsername(authentication.name), HttpStatus.OK)
+    }
 
     // NOTA MENTAL, 100 TOKENS DE USUARIO = 1€, 1 TOKEN = 1 Cent
 
