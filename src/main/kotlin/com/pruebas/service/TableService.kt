@@ -15,8 +15,7 @@ class TableService {
     @Autowired
     private lateinit var tableRepository: TableRepository
 
-    fun createTable(tableToInsert: InsertTableDTO): Table{
-
+    fun insertTable(tableToInsert: InsertTableDTO): Table{
 
         if (tableToInsert.title.isEmpty()){
             throw BadRequestException("Title cannot be empty")

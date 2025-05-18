@@ -15,30 +15,38 @@ class CustomUrlWebSocketHandler(
         val listOfParams = url.split("/")
 
         try {
-            return listOfParams[listOfParams.size - 2]
+            return listOfParams[listOfParams.size - 1]
         }catch (e:Exception){
             print("gameId did not exist on url")
             return null
         }
     }
-
-    private fun getBigBlindFromUrl(url: String): Int? {
-        val listOfParams = url.split("/")
-        try {
-            return listOfParams[listOfParams.size - 1].toInt()
-        }catch (e:Exception){
-            print("big blind amount did not exist on url")
-            return null
-        }
-    }
+//
+//    private fun getBigBlindFromUrl(url: String): Int? {
+//        val listOfParams = url.split("/")
+//        try {
+//            return listOfParams[listOfParams.size - 1].toInt()
+//        }catch (e:Exception){
+//            print("big blind amount did not exist on url")
+//            return null
+//        }
+//    }
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
         val url = session.uri?.path ?: return
         val gameId = getTableIdFromUrl(url) ?: return
-        val bigBlindAmount = getBigBlindFromUrl(url) ?: return
 
-        val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId,bigBlindAmount) }
+        val handler = games[gameId]
+
+        if (handler == null) {
+            // No existe esa mesa
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Mesa no encontrada"))
+            return
+        }
+
+//        val bigBlindAmount = getBigBlindFromUrl(url) ?: return
+//        val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId,bigBlindAmount) }
         handler.afterConnectionEstablished(session)
     }
 

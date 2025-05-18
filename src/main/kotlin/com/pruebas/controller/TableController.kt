@@ -1,8 +1,10 @@
 package com.pruebas.controller
 
+import com.pruebas.PokerWebSocketHandler
 import com.pruebas.dto.InsertTableDTO
 import com.pruebas.model.Table
 import com.pruebas.service.TableService
+import org.apache.coyote.BadRequestException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,10 +20,29 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/tables")
-class TableController {
+class TableController(
+    private val games: MutableMap<String, PokerWebSocketHandler>
+) {
 
     @Autowired
     private lateinit var tableService: TableService
+
+    @PostMapping("/insertTable")
+    fun insertTable(
+        authentication: Authentication,
+        @RequestBody insertTableDto: InsertTableDTO): ResponseEntity<String> {
+
+        val table = tableService.insertTable(insertTableDto)
+
+        if (table._id == null) {
+            throw BadRequestException("The id from the table is null")
+        }
+
+        val handler = PokerWebSocketHandler(table._id, table.bigBlind)
+        games[table._id] = handler
+
+        return ResponseEntity.ok("Mesa '${table._id}' creada con big blind ${table.bigBlind}")
+    }
 
 
     @PostMapping("/insert")
@@ -29,7 +50,7 @@ class TableController {
         authentication: Authentication,
         @RequestBody tableDTO: InsertTableDTO,
     ): ResponseEntity<Table> {
-        return ResponseEntity(tableService.createTable(tableDTO) ,HttpStatus.CREATED)
+        return ResponseEntity(tableService.insertTable(tableDTO) ,HttpStatus.CREATED)
     }
 
     @GetMapping("/getAll")
