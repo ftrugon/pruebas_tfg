@@ -12,14 +12,10 @@ class CustomUrlWebSocketHandler(
 ) : WebSocketHandler {
 
     private fun getTableIdFromUrl(url: String): String? {
-        val listOfParams = url.split("/")
+        val idTable = url.split("/").lastOrNull()
 
-        try {
-            return listOfParams[listOfParams.size - 1]
-        }catch (e:Exception){
-            print("gameId did not exist on url")
-            return null
-        }
+        return idTable
+
     }
 //
 //    private fun getBigBlindFromUrl(url: String): Int? {
@@ -34,16 +30,20 @@ class CustomUrlWebSocketHandler(
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
+
         val url = session.uri?.path ?: return
         val gameId = getTableIdFromUrl(url) ?: return
+        println("Conexión WebSocket recibida para la mesa: $gameId")
 
         val handler = games[gameId]
 
         if (handler == null) {
+            println("handler no encontrado")
             // No existe esa mesa
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Mesa no encontrada"))
             return
         }
+        println("✅ Handler encontrado, estableciendo conexión para $gameId")
 
 //        val bigBlindAmount = getBigBlindFromUrl(url) ?: return
 //        val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId,bigBlindAmount) }

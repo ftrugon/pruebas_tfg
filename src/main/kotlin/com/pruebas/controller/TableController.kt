@@ -45,13 +45,13 @@ class TableController(
     }
 
 
-    @PostMapping("/insert")
-    fun insert(
-        authentication: Authentication,
-        @RequestBody tableDTO: InsertTableDTO,
-    ): ResponseEntity<Table> {
-        return ResponseEntity(tableService.insertTable(tableDTO) ,HttpStatus.CREATED)
-    }
+//    @PostMapping("/insert")
+//    fun insert(
+//        authentication: Authentication,
+//        @RequestBody tableDTO: InsertTableDTO,
+//    ): ResponseEntity<Table> {
+//        return ResponseEntity(tableService.insertTable(tableDTO) ,HttpStatus.CREATED)
+//    }
 
     @GetMapping("/getAll")
     fun getTables():ResponseEntity<List<Table>> {
@@ -80,9 +80,16 @@ class TableController(
         authentication: Authentication
     ){
 
+        var tablesToDel: List<Table> = emptyList()
+
         if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }){
-            tableService.deleteEmptyTables()
+            tablesToDel = tableService.deleteEmptyTables()
         }
+
+        for (table in tablesToDel) {
+            games.remove(table._id)
+        }
+
     }
 
 

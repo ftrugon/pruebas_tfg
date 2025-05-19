@@ -23,6 +23,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 
 @Configuration
+@EnableWebSocket
 class WebSocketGameConfig : WebSocketConfigurer {
 
     @Bean
