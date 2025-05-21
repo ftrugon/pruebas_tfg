@@ -42,7 +42,7 @@ class TableController(
             throw BadRequestException("The id from the table is null")
         }
 
-        val handler = PokerWebSocketHandler(table._id, table.bigBlind, userService)
+        val handler = PokerWebSocketHandler(table._id, table.bigBlind, userService,tableService)
         games[table._id] = handler
 
         return ResponseEntity.ok("Mesa '${table._id}' creada con big blind ${table.bigBlind}")

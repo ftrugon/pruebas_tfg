@@ -7,6 +7,7 @@ import com.pruebas.pokerLogic.HandManager
 import com.pruebas.pokerLogic.Player
 import com.pruebas.pokerLogic.PlayerState
 import com.pruebas.pokerLogic.PotManager
+import com.pruebas.service.TableService
 import com.pruebas.service.UsuarioService
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -15,9 +16,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 
 
 class PokerWebSocketHandler(
-    private val gameId: String,
+    private val tableId: String,
     private val bigBlindAmount: Int,
-    private var saldoService: UsuarioService
+    private var saldoService: UsuarioService,
+    private var tableService: TableService,
 ) : TextWebSocketHandler() {
 
     private val players = mutableListOf<Player>()
@@ -39,8 +41,11 @@ class PokerWebSocketHandler(
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
-        players.add(Player(session,"",0))
-
+        if (playersToKick.size < 6) {
+            players.add(Player(session,"",0))
+        }else {
+            afterConnectionClosed(session, CloseStatus(4002,"No space on the table"))
+        }
     }
 
     private fun assignRoles(){
@@ -168,17 +173,18 @@ class PokerWebSocketHandler(
 
         println(playerInfo)
 
-//        try{
+        try{
             player.name = playerInfo.name
             player.tokens = playerInfo.dinero
 
             saldoService.retireTokensToUser(player.name,playerInfo.dinero)
+            tableService.sumOneNumOfPlayerFromTable(tableId)
 
             broadcast(Message(MessageType.PLAYER_JOIN, player.name))
 
-//        }catch(e: Exception){
-//            afterConnectionClosed(player.session!!, CloseStatus(4001,e.message))
-//        }
+        }catch(e: Exception){
+            afterConnectionClosed(player.session!!, CloseStatus(4001,e.message))
+        }
 
     }
 
