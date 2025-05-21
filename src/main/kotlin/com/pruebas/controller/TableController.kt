@@ -4,6 +4,7 @@ import com.pruebas.PokerWebSocketHandler
 import com.pruebas.dto.InsertTableDTO
 import com.pruebas.model.Table
 import com.pruebas.service.TableService
+import com.pruebas.service.UsuarioService
 import org.apache.coyote.BadRequestException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
@@ -38,7 +39,7 @@ class TableController(
             throw BadRequestException("The id from the table is null")
         }
 
-        val handler = PokerWebSocketHandler(table._id, table.bigBlind)
+        val handler = PokerWebSocketHandler(table._id, table.bigBlind, UsuarioService())
         games[table._id] = handler
 
         return ResponseEntity.ok("Mesa '${table._id}' creada con big blind ${table.bigBlind}")

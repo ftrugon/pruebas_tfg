@@ -93,15 +93,14 @@ class UsuarioService : UserDetailsService {
     }
 
 
-    fun retireTokensToUser(username: String,amount: Int): Int {
+    fun retireTokensToUser(username: String,amount: Int): UsuarioDTO {
         val user = getByUsername(username)
 
-        if (amount >= user.tokens) {
-            user.tokens = 0
-            return 0
+        if (amount > user.tokens) {
+            throw BadRequestException("You cant retire more amount of tokens than are in your account")
         }else{
             user.tokens -= amount
-            return user.tokens
+            return DTOParser.usuarioToDto(usuarioRepository.save(user))
         }
 
     }

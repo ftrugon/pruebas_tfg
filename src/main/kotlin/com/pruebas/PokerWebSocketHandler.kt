@@ -7,13 +7,18 @@ import com.pruebas.pokerLogic.HandManager
 import com.pruebas.pokerLogic.Player
 import com.pruebas.pokerLogic.PlayerState
 import com.pruebas.pokerLogic.PotManager
+import com.pruebas.service.UsuarioService
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 
-class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmount: Int) : TextWebSocketHandler() {
+class PokerWebSocketHandler(
+    private val gameId: String,
+    private val bigBlindAmount: Int,
+    private var saldoService: UsuarioService
+) : TextWebSocketHandler() {
 
     private val players = mutableListOf<Player>()
     private var playersToKick = mutableListOf<Player>()
@@ -30,7 +35,6 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
     private var smallBlindAmount = bigBlindAmount / 2
     //private var bigBlindAmount = 5
 
-    private var gameState = "ronda de apuestas" // enum class para estar en ronda dde aapuestas o otra cosa
     private var actualTurn = TurnType.PRE_FLOP // enum class para cadda rondda
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
@@ -148,8 +152,11 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
                 activePlayers.remove(sessionPlayer)
             }
         }else {
-            println("Connection closed -> $session")
+
             players.remove(sessionPlayer)
+
+
+            saldoService.addTokensToUser(sessionPlayer?.name ?: "" ,sessionPlayer?.tokens ?: 0)
             super.afterConnectionClosed(session, status)
         }
 
@@ -158,29 +165,39 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
     private fun getPlayerInfo(player: Player,msgPayload: String){
         val playerInfo = Json.decodeFromString<PlayerInfoMessage>(msgPayload)
 
-        player.name = playerInfo.name
-        player.tokens = playerInfo.dinero
+        try{
 
-        broadcast(Message(MessageType.PLAYER_JOIN, player.name))
+            saldoService.retireTokensToUser(player.name,playerInfo.dinero)
+
+            player.name = playerInfo.name
+            player.tokens = playerInfo.dinero
+
+            broadcast(Message(MessageType.PLAYER_JOIN, player.name))
+
+        }catch(e: Exception){
+            afterConnectionClosed(player.session!!, CloseStatus(4001,""))
+        }
 
     }
 
     private fun playerReady(player: Player){
+        // Si la partida esta activa, no se puede dar a listo directamente
         if (!gameActive){
             player.isReadyToPlay = !player.isReadyToPlay
             broadcast(Message(MessageType.PLAYER_READY,player.name))
 
+            // El poker requiere minimo de 3 personas para comenzar la partida, si no hay 3 personas en la lobby
             if (players.size >= 3 && allPlayersReady()) {
-                // METODO PARA EMPEZAR LA PARTIDA O LO QUE SEA
-                broadcast(Message(MessageType.TEXT_MESSAGE, "LA PARTIDA VA A EMPEZAR"))
+                broadcast(Message(MessageType.TEXT_MESSAGE, "The game is going to start!"))
                 startRound()
             }
+        }else{
+            sendMessageToPlayer(player, Message(MessageType.TEXT_MESSAGE, "There is an active game right now"))
         }
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val action = message.payload
-
         val playerToChange = players.find { it.session == session }
 
         if (playerToChange == null) {
@@ -189,11 +206,11 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
 
         val msg = Json.decodeFromString<Message>(action)
 
+        // PLAYER_INFO --> INFORMACION QUE LE LLEGA AL SERVIDOR DEL USUARIO
         if (msg.messageType == MessageType.PLAYER_INFO){
             getPlayerInfo(playerToChange,msg.content)
         }
 
-        // TODO LIST --> EL RESTO DE CASO DEL TIPO DE LOS MENSAJES,
         // PLAYER_READY --> Notificar al resto de los usuarios que un usuario esta listo
         if (msg.messageType == MessageType.PLAYER_READY){
             playerReady(playerToChange)
@@ -201,27 +218,22 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
 
         // TEXT_MESSAGE, --> Poner en un chat dentro del cliente el mensaje
         if (msg.messageType == MessageType.TEXT_MESSAGE){
-
             if (msg.content.isNotEmpty()){
                 val msgToSend = Message(MessageType.TEXT_MESSAGE,"${playerToChange.name}: ${msg.content}")
                 broadcast(msgToSend)
             }
-
         }
 
-        // ESTOS 2 PUNTOS SON LOS COMPLICADOS
         // ACTION, --> Las distintas acciones que puede hace el usuario (fold, call, raise)
-
         if (msg.messageType == MessageType.ACTION){
 
             val betPayload = Json.decodeFromString<BetPayload>(msg.content)
 
+            // compruebo si los jugadores estan listos, y el turno de cada jugador
             receiveBetAction(playerToChange,betPayload)
 
-            // compruebo si los jugadores estan listos, y el turno de cada jugador
         }
 
-        println("Acción recibida: $action")
     }
 
     private fun checkIfPassRound(): Boolean{
@@ -261,6 +273,7 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
 
     private fun endRound(){
 
+
         players.forEach {
             it.isReadyToPlay = false
             it.cards.clear()
@@ -270,15 +283,17 @@ class PokerWebSocketHandler(private val gameId: String, private val bigBlindAmou
             if (it.session == null){
                 playersToKick.add(it)
             }
-            if (it.tokens <= bigBlindAmount){
-                playersToKick.remove(it)
+            if (it.tokens < bigBlindAmount){
+                playersToKick.add(it)
             }
 
         }
 
 
         playersToKick.forEach {
-            it.session?.close()
+            if (it.session != null){
+                afterConnectionClosed(it.session!!, CloseStatus(4001,""))
+            }
         }
 
         players.removeAll(playersToKick)
