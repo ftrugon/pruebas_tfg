@@ -41,7 +41,6 @@ class PokerWebSocketHandler(
 
         players.add(Player(session,"",0))
 
-        println(players)
     }
 
     private fun assignRoles(){
@@ -144,9 +143,6 @@ class PokerWebSocketHandler(
         if (gameActive){
             sessionPlayer?.session = null
 
-            println(sessionPlayer)
-            println(players[actualPlayerIndex % players.size])
-
             if (sessionPlayer == players[actualPlayerIndex % players.size]){
                 sessionPlayer.playerState = PlayerState.RETIRED
                 activePlayers.remove(sessionPlayer)
@@ -156,7 +152,12 @@ class PokerWebSocketHandler(
             players.remove(sessionPlayer)
 
 
-            saldoService.addTokensToUser(sessionPlayer?.name ?: "" ,sessionPlayer?.tokens ?: 0)
+            try {
+                saldoService.addTokensToUser(sessionPlayer?.name ?: "" ,sessionPlayer?.tokens ?: 0)
+            }catch (e: Exception){
+
+            }
+
             super.afterConnectionClosed(session, status)
         }
 
@@ -165,18 +166,19 @@ class PokerWebSocketHandler(
     private fun getPlayerInfo(player: Player,msgPayload: String){
         val playerInfo = Json.decodeFromString<PlayerInfoMessage>(msgPayload)
 
-        try{
+        println(playerInfo)
 
-            saldoService.retireTokensToUser(player.name,playerInfo.dinero)
-
+//        try{
             player.name = playerInfo.name
             player.tokens = playerInfo.dinero
 
+            saldoService.retireTokensToUser(player.name,playerInfo.dinero)
+
             broadcast(Message(MessageType.PLAYER_JOIN, player.name))
 
-        }catch(e: Exception){
-            afterConnectionClosed(player.session!!, CloseStatus(4001,""))
-        }
+//        }catch(e: Exception){
+//            afterConnectionClosed(player.session!!, CloseStatus(4001,e.message))
+//        }
 
     }
 
@@ -198,6 +200,7 @@ class PokerWebSocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val action = message.payload
+
         val playerToChange = players.find { it.session == session }
 
         if (playerToChange == null) {
@@ -311,6 +314,25 @@ class PokerWebSocketHandler(
         // por el momento paara probar solo voy a sacar 1 carta
 
         if (actualTurn == TurnType.SHOWDOWN || activePlayers.size == 1){
+
+            // Catetada por si todo el mundo va all in de primeras
+            if (actualTurn != TurnType.SHOWDOWN ){
+                when (actualTurn){
+                    TurnType.PRE_FLOP -> {
+                        addToCommunityCards(5)
+                    }
+                    TurnType.FLOP -> {
+                        addToCommunityCards(2)
+                    }
+                    TurnType.TURN -> {
+                        addToCommunityCards(1)
+                    }
+                    else ->{
+                        // nada jasjasj
+                    }
+
+                }
+            }
             chooseWinners()
             endRound()
             return

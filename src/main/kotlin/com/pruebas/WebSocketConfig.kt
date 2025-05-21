@@ -1,5 +1,7 @@
 package com.pruebas
 
+import com.pruebas.service.TableService
+import com.pruebas.service.UsuarioService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.socket.WebSocketHandler
