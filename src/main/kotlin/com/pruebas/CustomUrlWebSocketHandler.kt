@@ -43,10 +43,7 @@ class CustomUrlWebSocketHandler(
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Mesa no encontrada"))
             return
         }
-        println("✅ Handler encontrado, estableciendo conexión para $gameId")
 
-//        val bigBlindAmount = getBigBlindFromUrl(url) ?: return
-//        val handler = games.getOrPut(gameId) { PokerWebSocketHandler(gameId,bigBlindAmount) }
         handler.afterConnectionEstablished(session)
     }
 

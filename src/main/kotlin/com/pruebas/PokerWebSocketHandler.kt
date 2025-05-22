@@ -143,7 +143,9 @@ class PokerWebSocketHandler(
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
 
+
         val sessionPlayer = players.find { it.session == session }
+        println("Se va a cerrar la conexion del jugador ${sessionPlayer?.name}")
 
         if (gameActive){
             sessionPlayer?.session = null
@@ -156,9 +158,9 @@ class PokerWebSocketHandler(
 
             players.remove(sessionPlayer)
 
-
             try {
                 saldoService.addTokensToUser(sessionPlayer?.name ?: "" ,sessionPlayer?.tokens ?: 0)
+                tableService.subOneNumOfPlayerFromTable(tableId)
             }catch (e: Exception){
 
             }

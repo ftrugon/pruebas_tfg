@@ -71,9 +71,8 @@ class TableService {
     }
 
 
-    fun deleteEmptyTables(): List<Table>{
+    fun deleteEmptyTables(tablesToDel: List<Table>): List<Table>{
 
-        val tablesToDel = tableRepository.findAll().filter { it.numPlayers <= 0 }
         tableRepository.deleteAll(tablesToDel)
 
         return tablesToDel

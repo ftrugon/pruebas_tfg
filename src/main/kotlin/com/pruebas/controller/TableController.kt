@@ -31,6 +31,8 @@ class TableController(
     @Autowired
     private lateinit var userService: UsuarioService
 
+
+
     @PostMapping("/insertTable")
     fun insertTable(
         authentication: Authentication,
@@ -79,15 +81,26 @@ class TableController(
         return ResponseEntity(tableService.subOneNumOfPlayerFromTable(id),HttpStatus.OK)
     }
 
-    @DeleteMapping("/deleteEmptyTables")
+    @DeleteMapping("/deleteUselessTables")
     fun delete(
         authentication: Authentication
     ){
+        val tablesToDel: MutableList<Table> = mutableListOf()
+        val alltables = tableService.getAllTables()
 
-        var tablesToDel: List<Table> = emptyList()
+        for (table in alltables){
+            if (table._id !in games.keys) {
+                tablesToDel.add(table)
+            }
+        }
+
+        tablesToDel.addAll(alltables.filter {
+            it.numPlayers <= 0 && it !in tablesToDel
+        })
+
 
         if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }){
-            tablesToDel = tableService.deleteEmptyTables()
+            tablesToDel += tableService.deleteEmptyTables(tablesToDel)
         }
 
         for (table in tablesToDel) {
