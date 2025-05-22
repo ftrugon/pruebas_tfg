@@ -156,9 +156,9 @@ class HandManager {
     private fun bestOfTwoHands(playerOne:Player, playerTwo:Player):Int{
 
         // Si alguno de los 2 jugadores ha foldeado, se elige al otro como ganador sin importar su mano
-        if (playerOne.playerState == PlayerState.RETIRED){
+        if (playerOne.hasFolded){
             return 1
-        }else if(playerTwo.playerState == PlayerState.RETIRED){
+        }else if(playerTwo.hasFolded){
             return -1
         }
 

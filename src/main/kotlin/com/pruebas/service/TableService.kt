@@ -71,11 +71,11 @@ class TableService {
     }
 
 
-    fun deleteEmptyTables(tablesToDel: List<Table>): List<Table>{
+    fun deleteTables(tablesToDel: List<Table>){
 
-        tableRepository.deleteAll(tablesToDel)
-
-        return tablesToDel
+        for (table in tablesToDel){
+            tableRepository.deleteById(table._id!!)
+        }
 
     }
 

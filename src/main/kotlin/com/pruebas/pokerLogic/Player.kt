@@ -12,6 +12,7 @@ data class Player(
     var isSmallBlind:Boolean = false
     var isBigBlind:Boolean = false
     var isReadyToPlay:Boolean = false
+    var hasFolded = false
     var playerState: PlayerState = PlayerState.NOT_READY // reemplazar por PlayerState, notReady, ready, retired, banned
     var currentBet: Int = 0
 

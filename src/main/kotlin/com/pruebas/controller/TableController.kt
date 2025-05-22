@@ -2,6 +2,7 @@ package com.pruebas.controller
 
 import com.pruebas.PokerWebSocketHandler
 import com.pruebas.dto.InsertTableDTO
+import com.pruebas.error.exceptions.UnauthorizedException
 import com.pruebas.model.Table
 import com.pruebas.service.TableService
 import com.pruebas.service.UsuarioService
@@ -84,7 +85,7 @@ class TableController(
     @DeleteMapping("/deleteUselessTables")
     fun delete(
         authentication: Authentication
-    ){
+    ): ResponseEntity<String>{
         val tablesToDel: MutableList<Table> = mutableListOf()
         val alltables = tableService.getAllTables()
 
@@ -100,14 +101,14 @@ class TableController(
 
 
         if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }){
-            tablesToDel += tableService.deleteEmptyTables(tablesToDel)
+            tableService.deleteTables(tablesToDel)
+            for (table in tablesToDel) {
+                games.remove(table._id)
+            }
+            return ResponseEntity("All the useless tables were eliminated", HttpStatus.OK)
+        }else{
+            throw UnauthorizedException("You are not authorized to make this transaction")
         }
-
-        for (table in tablesToDel) {
-            games.remove(table._id)
-        }
-
     }
-
 
 }

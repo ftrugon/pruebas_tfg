@@ -5,6 +5,11 @@ class BetManager {
 
     val madeBets = mutableListOf<Bet>()
 
+    fun resetBets(players: List<Player>) {
+        players.forEach { it.currentBet = 0 }
+        madeBets.clear()
+    }
+
     fun makeBet(player: Player, amount: Int) {
         if (amount <= 0) return
 
