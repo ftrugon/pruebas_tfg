@@ -9,6 +9,7 @@ enum class MessageType {
     ACTION,
     STATE_UPDATE,
     PLAYER_CARDS,
+    START_ROUND,
     END_ROUND,
     SERVER_RESPONSE,
     NOTIFY_TURN,

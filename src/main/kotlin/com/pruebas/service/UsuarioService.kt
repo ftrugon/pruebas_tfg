@@ -106,4 +106,12 @@ class UsuarioService : UserDetailsService {
     }
 
 
+    fun banUser(
+        username: String,
+    ): Usuario{
+        val user = getByUsername(username)
+        user.isBanned = true
+        return usuarioRepository.save(user)
+    }
+
 }

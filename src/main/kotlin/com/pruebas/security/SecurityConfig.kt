@@ -40,7 +40,22 @@ class SecurityConfig {
                 .requestMatchers("/users/login").permitAll()
                 .requestMatchers("/users/register").permitAll()
                 .requestMatchers("/users/getInfo").authenticated()
-                .anyRequest().permitAll()
+                .requestMatchers(HttpMethod.GET,"/users/getUserInfo/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT,"/users/banUser/**").hasRole("ADMIN")
+
+                .requestMatchers("/bets/myBets").authenticated()
+                .requestMatchers(HttpMethod.GET,"/bets/betsFromUser/**").hasRole("ADMIN")
+
+                .requestMatchers("/tokens/getTotalAmount").authenticated()
+                .requestMatchers("/tokens/insertTokens/**").authenticated()
+                .requestMatchers("/tokens/retireTokens/**").authenticated()
+                .requestMatchers(HttpMethod.PUT,"/tokens/insertTokensFrom/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT,"/tokens/retireTokensFrom/**").hasRole("ADMIN")
+
+                .requestMatchers("/tables/insertTable").authenticated()
+                .requestMatchers("/tables/getAll").authenticated()
+                .requestMatchers(HttpMethod.DELETE,"/tables/deleteUselessTables").hasRole("ADMIN")
+
             } // Los recursos protegidos y publicos
             .oauth2ResourceServer { oauth2 -> oauth2.jwt(Customizer.withDefaults()) }
             .sessionManagement { session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }

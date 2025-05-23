@@ -38,8 +38,8 @@ class TableController(
 
     @PostMapping("/insertTable")
     fun insertTable(
-        authentication: Authentication,
-        @RequestBody insertTableDto: InsertTableDTO): ResponseEntity<String> {
+        @RequestBody insertTableDto: InsertTableDTO
+    ): ResponseEntity<String> {
 
         val table = tableService.insertTable(insertTableDto)
 
@@ -73,22 +73,22 @@ class TableController(
         return ResponseEntity(tableService.getAllTables(), HttpStatus.OK)
     }
 
-
-    @PutMapping("/updateSum/{id}")
-    fun updateSum(
-        authentication: Authentication,
-        @PathVariable id: String
-    ): ResponseEntity<Table> {
-        return ResponseEntity(tableService.sumOneNumOfPlayerFromTable(id),HttpStatus.OK)
-    }
-
-    @PutMapping("/updateSub/{id}")
-    fun updateSub(
-        authentication: Authentication,
-        @PathVariable id: String
-    ): ResponseEntity<Table> {
-        return ResponseEntity(tableService.subOneNumOfPlayerFromTable(id),HttpStatus.OK)
-    }
+    // de esto se encarga el servidor solo, no hace falta usar un endppoint para esto
+//    @PutMapping("/updateSum/{id}")
+//    fun updateSum(
+//        authentication: Authentication,
+//        @PathVariable id: String
+//    ): ResponseEntity<Table> {
+//        return ResponseEntity(tableService.sumOneNumOfPlayerFromTable(id),HttpStatus.OK)
+//    }
+//
+//    @PutMapping("/updateSub/{id}")
+//    fun updateSub(
+//        authentication: Authentication,
+//        @PathVariable id: String
+//    ): ResponseEntity<Table> {
+//        return ResponseEntity(tableService.subOneNumOfPlayerFromTable(id),HttpStatus.OK)
+//    }
 
     @DeleteMapping("/deleteUselessTables")
     fun delete(
@@ -115,7 +115,7 @@ class TableController(
             }
             return ResponseEntity("All the useless tables were eliminated", HttpStatus.OK)
         }else{
-            throw UnauthorizedException("You are not authorized to make this transaction")
+            throw UnauthorizedException("Admin is required")
         }
     }
 

@@ -64,8 +64,12 @@ class UsuarioController {
 
         // SI PASAMOS LA AUTENTICACIÓN, SIGNIFICA QUE ESTAMOS BIEN AUTENTICADOS
         // PASAMOS A GENERAR EL TOKEN
-        val token = tokenService.generarToken(authentication)
 
+        if (usuarioService.getByUsername(authentication.name).isBanned) {
+            throw UnauthorizedException("The user you are trying to access with is banned")
+        }
+
+        val token = tokenService.generarToken(authentication)
         return ResponseEntity(mapOf("token" to token), HttpStatus.OK)
     }
 
@@ -78,5 +82,28 @@ class UsuarioController {
     }
 
 
+    @GetMapping("/getUserInfo/{username}")
+    fun getInfoFromUser(
+        authentication: Authentication,
+        @PathVariable username: String,
+    ): ResponseEntity<Usuario> {
+        if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }) {
+            return ResponseEntity(usuarioService.getByUsername(username),HttpStatus.OK)
+        }else{
+            throw UnauthorizedException("Admin is required")
+        }
+    }
+
+    @PutMapping("/banUser/{username}")
+    fun banUser(
+        authentication: Authentication,
+        @PathVariable username: String,
+    ): ResponseEntity<Usuario> {
+        if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }) {
+            return ResponseEntity(usuarioService.banUser(username),HttpStatus.OK)
+        }else{
+            throw UnauthorizedException("Admin is required")
+        }
+    }
 
 }

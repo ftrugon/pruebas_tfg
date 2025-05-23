@@ -124,6 +124,7 @@ class PokerWebSocketHandler(
         activePlayers = players.toMutableList()
         assignRoles()
         giveCards()
+        broadcast(Message(MessageType.START_ROUND,""))
         betBlinds()
 
     }
@@ -159,17 +160,16 @@ class PokerWebSocketHandler(
     // funcion del websocket de cuando se cierra una conexion
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
 
-
         val sessionPlayer = players.find { it.session == session }
         println("Se va a cerrar la conexion del jugador ${sessionPlayer?.name}")
 
         if (gameActive){
             sessionPlayer?.session = null
 
-            if (sessionPlayer == players[actualPlayerIndex % players.size]){
-                sessionPlayer.hasFolded = true
+            //if (sessionPlayer == players[actualPlayerIndex % players.size]){
+            sessionPlayer?.hasFolded = true
                 //activePlayers.remove(sessionPlayer)
-            }
+            //}
         }else {
 
             players.remove(sessionPlayer)
