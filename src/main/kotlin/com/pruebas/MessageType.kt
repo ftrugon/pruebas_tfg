@@ -3,10 +3,15 @@ package com.pruebas
 enum class MessageType {
     PLAYER_READY,
     PLAYER_JOIN,
+    PLAYER_LEAVE,
     PLAYER_INFO,
     TEXT_MESSAGE,
     ACTION,
     STATE_UPDATE,
     PLAYER_CARDS,
-    END_ROUND
+    END_ROUND,
+    SERVER_RESPONSE,
+    NOTIFY_TURN,
+    HAND_RANKING,
+    NOTIFY_WINNER
 }

@@ -4,6 +4,7 @@ import com.pruebas.PokerWebSocketHandler
 import com.pruebas.dto.InsertTableDTO
 import com.pruebas.error.exceptions.UnauthorizedException
 import com.pruebas.model.Table
+import com.pruebas.service.BetService
 import com.pruebas.service.TableService
 import com.pruebas.service.UsuarioService
 import org.apache.coyote.BadRequestException
@@ -32,7 +33,8 @@ class TableController(
     @Autowired
     private lateinit var userService: UsuarioService
 
-
+    @Autowired
+    private lateinit var betsService: BetService
 
     @PostMapping("/insertTable")
     fun insertTable(
@@ -45,7 +47,13 @@ class TableController(
             throw BadRequestException("The id from the table is null")
         }
 
-        val handler = PokerWebSocketHandler(table._id, table.bigBlind, userService,tableService)
+        val handler = PokerWebSocketHandler(
+            table._id,
+            table.bigBlind,
+            userService,
+            tableService,
+            betsService)
+
         games[table._id] = handler
 
         return ResponseEntity.ok("Mesa '${table._id}' creada con big blind ${table.bigBlind}")
