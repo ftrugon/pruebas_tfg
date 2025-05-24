@@ -170,6 +170,10 @@ class PokerWebSocketHandler(
             sessionPlayer?.hasFolded = true
                 //activePlayers.remove(sessionPlayer)
             //}
+
+            if (sessionPlayer == players[actualPlayerIndex % players.size]){
+                nextPlayerIndex()
+            }
         }else {
 
             players.remove(sessionPlayer)
