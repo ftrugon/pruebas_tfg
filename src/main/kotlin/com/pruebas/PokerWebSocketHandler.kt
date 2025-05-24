@@ -214,7 +214,9 @@ class PokerWebSocketHandler(
         // Si la partida esta activa, no se puede dar a listo directamente
         if (!gameActive){
             player.isReadyToPlay = !player.isReadyToPlay
-            broadcast(Message(MessageType.PLAYER_READY,player.name))
+            val jsonToBool = Json.encodeToString<Pair<String, Boolean>>(player.name to player.isReadyToPlay)
+
+            broadcast(Message(MessageType.PLAYER_READY,jsonToBool))
 
             // El poker requiere minimo de 3 personas para comenzar la partida, si no hay 3 personas en la lobby
             if (players.size >= 2 && allPlayersReady()) {

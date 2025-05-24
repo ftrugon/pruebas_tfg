@@ -56,6 +56,7 @@ class SecurityConfig {
                 .requestMatchers("/tables/getAll").authenticated()
                 .requestMatchers(HttpMethod.DELETE,"/tables/deleteUselessTables").hasRole("ADMIN")
 
+                .anyRequest().permitAll()
             } // Los recursos protegidos y publicos
             .oauth2ResourceServer { oauth2 -> oauth2.jwt(Customizer.withDefaults()) }
             .sessionManagement { session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
