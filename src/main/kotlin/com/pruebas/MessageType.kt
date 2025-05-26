@@ -14,5 +14,6 @@ enum class MessageType {
     SERVER_RESPONSE,
     NOTIFY_TURN,
     HAND_RANKING,
-    NOTIFY_WINNER
+    NOTIFY_WINNER,
+    SEND_PLAYER_DATA
 }

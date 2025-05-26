@@ -113,8 +113,20 @@ class PokerWebSocketHandler(
         makeBetToService(bigBlindPlayer.name,bigBlindAmount,"Big blind")
 
         actualPlayerIndex += 3
-        broadcast(Message(MessageType.NOTIFY_TURN, "Turn of player ${activePlayers[actualPlayerIndex % activePlayers.size].name}"))
+        val player = activePlayers[actualPlayerIndex % activePlayers.size]
 
+        broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
+    }
+
+    private fun sendInfoOfPlayers(){
+        val listToSend = mutableListOf<PlayerDataToShow>()
+
+        activePlayers.forEach {
+            listToSend.add(PlayerDataToShow(it.name,it.tokens))
+        }
+
+        val msgJson = Json.encodeToString<List<PlayerDataToShow>>(listToSend)
+        broadcast(Message(MessageType.SEND_PLAYER_DATA,msgJson))
     }
 
     // funcion para empezar una ronda
@@ -124,6 +136,9 @@ class PokerWebSocketHandler(
         activePlayers = players.toMutableList()
         assignRoles()
         giveCards()
+
+        sendInfoOfPlayers()
+
         broadcast(Message(MessageType.START_ROUND,""))
         betBlinds()
 
@@ -163,7 +178,7 @@ class PokerWebSocketHandler(
         val sessionPlayer = players.find { it.session == session }
         println("Se va a cerrar la conexion del jugador ${sessionPlayer?.name}")
 
-        if (gameActive){
+        if (gameActive && sessionPlayer !in activePlayers) {
             sessionPlayer?.session = null
 
             //if (sessionPlayer == players[actualPlayerIndex % players.size]){
@@ -195,8 +210,6 @@ class PokerWebSocketHandler(
     // funcion para cuando un jugador se une a la mesa, el usuario manda automaticamente este mensaje
     private fun getPlayerInfo(player: Player,msgPayload: String){
         val playerInfo = Json.decodeFromString<PlayerInfoMessage>(msgPayload)
-
-        println(playerInfo)
 
         try{
             player.name = playerInfo.name
@@ -413,8 +426,9 @@ class PokerWebSocketHandler(
         }
 
         actualPlayerIndex = index
-        broadcast(Message(MessageType.NOTIFY_TURN, "Turn of player ${activePlayers[actualPlayerIndex % activePlayers.size].name}"))
-
+        val player = activePlayers[actualPlayerIndex % activePlayers.size]
+        broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
+        sendInfoOfPlayers()
     }
 
     // Envia una apuesta a la base de datos
@@ -453,7 +467,7 @@ class PokerWebSocketHandler(
                         allPlayersToNotReady()
 
                     }else{
-                        sendMessageToPlayer(player,Message(MessageType.SERVER_RESPONSE,"You dont have enough tokens, all your tokens will be bet"))
+                        sendMessageToPlayer(player,Message(MessageType.SERVER_RESPONSE,"You don't have enough tokens, going all-in"))
 
                         betManager.makeBet(player,player.tokens)
                         makeBetToService(player.name, amountToBet,"All in")
