@@ -1,6 +1,6 @@
 package com.pruebas.service
 
-import com.pruebas.PokerWebSocketHandler
+import com.pruebas.websockets.PokerWebSocketHandler
 import com.pruebas.model.Table
 import org.springframework.boot.CommandLineRunner
 import org.springframework.stereotype.Component

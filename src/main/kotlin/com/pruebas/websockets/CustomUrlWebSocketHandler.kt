@@ -1,10 +1,9 @@
-package com.pruebas
+package com.pruebas.websockets
 
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.WebSocketHandler
 import org.springframework.web.socket.WebSocketMessage
 import org.springframework.web.socket.WebSocketSession
-import kotlin.text.get
 
 
 class CustomUrlWebSocketHandler(

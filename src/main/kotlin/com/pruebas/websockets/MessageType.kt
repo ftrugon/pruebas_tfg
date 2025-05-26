@@ -1,4 +1,4 @@
-package com.pruebas
+package com.pruebas.websockets
 
 enum class MessageType {
     PLAYER_READY,

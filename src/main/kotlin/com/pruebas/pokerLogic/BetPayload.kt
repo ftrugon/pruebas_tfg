@@ -1,4 +1,4 @@
-package com.pruebas
+package com.pruebas.pokerLogic
 
 import kotlinx.serialization.Serializable
 
