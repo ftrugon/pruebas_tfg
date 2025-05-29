@@ -9,7 +9,7 @@ data class Usuario(
     @BsonId
     val _id : String?,
     @Indexed(unique = true)
-    val username: String,
+    var username: String,
     var password: String,
     var tokens:Int,
     val roles: String? = "USER",

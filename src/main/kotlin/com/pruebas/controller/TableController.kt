@@ -37,7 +37,7 @@ class TableController(
     @PostMapping("/insertTable")
     fun insertTable(
         @RequestBody insertTableDto: InsertTableDTO
-    ): ResponseEntity<String> {
+    ): ResponseEntity<Table> {
 
         val table = tableService.insertTable(insertTableDto)
 
@@ -46,6 +46,7 @@ class TableController(
         }
 
         val handler = PokerWebSocketHandler(
+            insertTableDto.title,
             table._id,
             table.bigBlind,
             userService,
@@ -54,7 +55,7 @@ class TableController(
 
         games[table._id] = handler
 
-        return ResponseEntity.ok("Mesa '${table._id}' creada con big blind ${table.bigBlind}")
+        return ResponseEntity(table, HttpStatus.OK)
     }
 
 

@@ -24,6 +24,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 
 
 class PokerWebSocketHandler(
+    private val tableTitle: String,
     private val tableId: String,
     private val bigBlindAmount: Int,
     private var saldoService: UsuarioService,
@@ -449,7 +450,7 @@ class PokerWebSocketHandler(
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val userId = saldoService.getByUsername(playerName)._id
-                betService.insertBet(BetDocument(null,tableId,userId?: "",amount,betType))
+                betService.insertBet(BetDocument(null,tableTitle,tableId,userId?: "",amount,betType))
             }catch (e:Exception){
                 println("Error while uploading bet on db")
             }

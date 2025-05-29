@@ -94,6 +94,15 @@ class UsuarioController {
         }
     }
 
+    @PutMapping("/changeUsername/{username}")
+    fun changeUsername(
+        authentication: Authentication,
+        @PathVariable username: String,
+    ): ResponseEntity<UsuarioDTO> {
+
+        return ResponseEntity(usuarioService.changeUsername(authentication.name,username),HttpStatus.OK)
+    }
+
     @PutMapping("/banUser/{username}")
     fun banUser(
         authentication: Authentication,

@@ -42,6 +42,7 @@ class SecurityConfig {
                 .requestMatchers("/users/getInfo").authenticated()
                 .requestMatchers(HttpMethod.GET,"/users/getUserInfo/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT,"/users/banUser/**").hasRole("ADMIN")
+                .requestMatchers("users/changeUsername/**").authenticated()
 
                 .requestMatchers("/bets/myBets").authenticated()
                 .requestMatchers(HttpMethod.GET,"/bets/betsFromUser/**").hasRole("ADMIN")

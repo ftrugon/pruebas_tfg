@@ -8,7 +8,6 @@ import com.pruebas.error.exceptions.UnauthorizedException
 import com.pruebas.model.Usuario
 import com.pruebas.repository.UsuarioRepository
 import com.pruebas.utils.DTOParser
-import jdk.jfr.DataAmount
 import org.apache.coyote.BadRequestException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.userdetails.UserDetails
@@ -92,7 +91,6 @@ class UsuarioService : UserDetailsService {
 
     }
 
-
     fun retireTokensToUser(username: String,amount: Int): UsuarioDTO {
         val user = getByUsername(username)
 
@@ -105,13 +103,21 @@ class UsuarioService : UserDetailsService {
 
     }
 
-
     fun banUser(
         username: String,
     ): Usuario{
         val user = getByUsername(username)
         user.isBanned = true
         return usuarioRepository.save(user)
+    }
+
+
+    fun changeUsername(oldUsername: String, newUsername: String): UsuarioDTO {
+
+        val user = getByUsername(oldUsername)
+        user.username = newUsername
+        return DTOParser.usuarioToDto(usuarioRepository.save(user))
+
     }
 
 }
