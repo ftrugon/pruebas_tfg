@@ -37,7 +37,7 @@ class PlayerTokensController {
     }
 
 
-    @PostMapping("/insertTokens/{amount}")
+    @PutMapping("/insertTokens/{amount}")
     fun insertTokens(
         authentication: Authentication,
         @PathVariable("amount") amount: Int

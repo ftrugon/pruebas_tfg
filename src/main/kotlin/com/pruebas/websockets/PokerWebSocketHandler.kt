@@ -52,7 +52,9 @@ class PokerWebSocketHandler(
     // funcion del websocket de cuando se establece una conexion
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
+        println("meta conexion")
         if (playersToKick.size < 6) {
+            println("meta conexion")
             players.add(Player(session,"",0))
         }else {
             afterConnectionClosed(session, CloseStatus(4002,"No space on the table"))
@@ -80,6 +82,8 @@ class PokerWebSocketHandler(
         deck.fillDeck()
         deck.shuffle()
 
+        println("meta asaignar roles")
+
     }
 
     // reparte las cartas a cada usuario
@@ -95,12 +99,17 @@ class PokerWebSocketHandler(
             val jsonMesagge = Json.encodeToString(messageToSend)
             it.session?.sendMessage(TextMessage(jsonMesagge))
         }
+
+        println("meta dar cartas")
+
+
     }
 
     // funcion que se ejecuta al principio de cada partida, reparte los blinds y los turnos
     private fun betBlinds(){
 
         val smallBlindPlayer = activePlayers.find { it.isSmallBlind }
+
         if(smallBlindPlayer == null){
             throw NullPointerException("Player not found")
         }
@@ -125,6 +134,9 @@ class PokerWebSocketHandler(
         val player = activePlayers[actualPlayerIndex % activePlayers.size]
 
         broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
+
+        println("meta apostar ciegaas")
+
     }
 
     private fun sendInfoOfPlayers(){
@@ -136,6 +148,8 @@ class PokerWebSocketHandler(
 
         val msgJson = Json.encodeToString<List<PlayerDataToShow>>(listToSend)
         broadcast(Message(MessageType.SEND_PLAYER_DATA, msgJson))
+        println("meta enviar informacion")
+
     }
 
     // funcion para empezar una ronda
@@ -150,6 +164,9 @@ class PokerWebSocketHandler(
 
         broadcast(Message(MessageType.START_ROUND, ""))
         betBlinds()
+
+        println("meta empezaar ronda")
+
 
     }
 
@@ -227,7 +244,9 @@ class PokerWebSocketHandler(
             saldoService.retireTokensToUser(player.name,playerInfo.dinero)
             tableService.sumOneNumOfPlayerFromTable(tableId)
 
-            broadcast(Message(MessageType.PLAYER_JOIN, player.name))
+            val playerDataToShowString =  Json.encodeToString(PlayerDataToShow(player.name, player.tokens))
+            broadcast(Message(MessageType.PLAYER_JOIN, playerDataToShowString))
+           // sendInfoOfPlayers()
 
         }catch(e: Exception){
             afterConnectionClosed(player.session!!, CloseStatus(4001,e.message))
@@ -566,6 +585,7 @@ class PokerWebSocketHandler(
 
     // envia un mensaje a todos los jugadores
     private fun broadcast(message: Message) {
+        println("se ha mandado un mensaje: $message")
         val jsonMessage = Json.encodeToString<Message>(message)
         players.forEach { it.session?.sendMessage(TextMessage(jsonMessage)) }
     }
