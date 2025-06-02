@@ -6,6 +6,9 @@ import com.pruebas.dto.UsuarioDTO
 import com.pruebas.model.Table
 import com.pruebas.model.Usuario
 
+/**
+ * objeto para parsear dtos
+ */
 object DTOParser {
 
     fun registrarDTOToUsuario(registrarUsuarioDTO: RegistrarUsuarioDTO): Usuario {
@@ -31,10 +34,6 @@ object DTOParser {
             0,
             insertTableDTO.bigBlind
         )
-    }
-
-    fun tableToTableDTO(){
-
     }
 
 }

@@ -1,5 +1,9 @@
 package com.pruebas.websockets
 
+
+/**
+ * enum class para el tipo de mensajes que puedem llegaar o ser enviados
+ */
 enum class MessageType {
     PLAYER_READY,
     PLAYER_JOIN,

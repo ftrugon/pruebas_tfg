@@ -1,10 +1,18 @@
 package com.pruebas.pokerLogic
 
+
+/**
+ * clase que gestiona las apuestas
+ */
 class BetManager {
 
-
+    // apuestas que se  han hecho esta ronda
     val madeBets = mutableListOf<Bet>()
 
+    /**
+     * funcion que resetea todo para una nueva ronda
+     * @param players los jugadores que reinicia
+     */
     fun resetBets(players: List<Player>) {
         players.forEach { it.currentBet = 0 }
         madeBets.clear()

@@ -23,6 +23,17 @@ import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 
+/**
+ * clase que controla el websocket a tiempo real, extiende de [TextWebSocketHandler] para poder realizar esta tarea
+ *
+ * @property tableTitle nombre de la mesa
+ * @property tableId Identificador único de la mesa
+ * @property bigBlindAmount valor del big blind para esta mesa
+ * @property saldoService service para manejar el saldo de los jugadores
+ * @property tableService service para manejar operaciones relacionadas con las mesas
+ * @property betService service encargado de las operaciones de apuestas
+ */
+
 class PokerWebSocketHandler(
     private val tableTitle: String,
     private val tableId: String,
@@ -32,38 +43,42 @@ class PokerWebSocketHandler(
     private var betService: BetService
 ) : TextWebSocketHandler() {
 
-    private val players = mutableListOf<Player>()
-    private var playersToKick = mutableListOf<Player>()
-    private var activePlayers = mutableListOf<Player>()
-    private var handManager = HandManager()
-    private var betManager = BetManager()
-    private var potManager = PotManager(betManager)
-    private var deck = Deck()
-    private var communityCards = mutableListOf<Card>()
-    private var gameActive = false
-    private var dealerIndex = 0
-    private var actualPlayerIndex = dealerIndex + 1
+    private val players = mutableListOf<Player>() // todos los jugadores, incluytendo los de la lobby
+    private var playersToKick = mutableListOf<Player>() // jugadores que tienen que ser expulsados al final de la ronda, yaa sea porque no tienen mas ddinero que apostar o se han desconectaddo antes
+    private var activePlayers = mutableListOf<Player>() // jugadores activos de la partida
+    private var handManager = HandManager() // instancia de hand manager, para evaluar las manos
+    private var betManager = BetManager() // instancia de betmanager, para las apuestas dde la partida
+    private var potManager = PotManager(betManager) // pot para gestionar los pots
+    private var deck = Deck() // baraja de la mesa
+    private var communityCards = mutableListOf<Card>() // cartas comunitarias
+    private var gameActive = false // booleanop para saber si la partida esta activa
+    private var dealerIndex = 0 // index del jugador que es el dealer, de aqui se saca el small y el big blind
+    private var actualPlayerIndex = dealerIndex + 1 // jugador actual
 
-    private var smallBlindAmount = bigBlindAmount / 2
-    //private var bigBlindAmount = 5
+    private var smallBlindAmount = bigBlindAmount / 2 // cuanto cuesta el small blind
 
-    private var actualTurn = TurnType.PRE_FLOP // enum class para cadda rondda
 
-    // funcion del websocket de cuando se establece una conexion
+    private var actualTurn = TurnType.PRE_FLOP // turno actual dde la partida
+
+    /**
+     * funcion del websocket de cuando se establece una conexion
+     * @param session la session que se conecta
+     */
     override fun afterConnectionEstablished(session: WebSocketSession) {
 
-        println("meta conexion")
+        // en mi proyecto, no pueden haber mas de 6 jugadores en una misma mesa
         if (playersToKick.size < 6) {
-            println("meta conexion")
             players.add(Player(session,"",0))
         }else {
             afterConnectionClosed(session, CloseStatus(4002,"No space on the table"))
         }
     }
 
-    // funcion que se ejecuta al principio de cada ronda, para probarlo todo
+    /**
+     * funcion que se ejecuta al principio de cada ronda, para asignar los blinds y el ddealer, tambien limpia y mezcla la baraja
+     */
     private fun assignRoles(){
-        communityCards.clear()
+
 
         dealerIndex = (dealerIndex + 1) % players.size
         actualPlayerIndex = dealerIndex
@@ -82,11 +97,11 @@ class PokerWebSocketHandler(
         deck.fillDeck()
         deck.shuffle()
 
-        println("meta asaignar roles")
-
     }
 
-    // reparte las cartas a cada usuario
+    /**
+     * reparte las cartas a cada usuario
+     */
     private fun giveCards(){
         players.forEach {
             val card1 = deck.drawCard()
@@ -100,14 +115,14 @@ class PokerWebSocketHandler(
             it.session?.sendMessage(TextMessage(jsonMesagge))
         }
 
-        println("meta dar cartas")
-
-
     }
 
-    // funcion que se ejecuta al principio de cada partida, reparte los blinds y los turnos
+    /**
+     * funcion que se ejecuta al principio de cada partida, reparte los blinds y los turnos
+     */
     private fun betBlinds(){
 
+        // hacer el small blindd
         val smallBlindPlayer = activePlayers.find { it.isSmallBlind }
 
         if(smallBlindPlayer == null){
@@ -122,6 +137,7 @@ class PokerWebSocketHandler(
         betManager.makeBet(smallBlindPlayer,smallBlindAmount)
         makeBetToService(smallBlindPlayer.name,smallBlindAmount,"Small blind")
 
+        // hacer el big blind
         val bigBlindPlayer = activePlayers.find { it.isBigBlind }
         if(bigBlindPlayer == null){
             throw NullPointerException("Player not found")
@@ -130,29 +146,37 @@ class PokerWebSocketHandler(
         betManager.makeBet(bigBlindPlayer,bigBlindAmount)
         makeBetToService(bigBlindPlayer.name,bigBlindAmount,"Big blind")
 
+        // notificar el turno
         actualPlayerIndex += 3
         val player = activePlayers[actualPlayerIndex % activePlayers.size]
-
         broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
-
-        println("meta apostar ciegaas")
 
     }
 
-    private fun sendInfoOfPlayers(){
+    /**
+     * envia la informacion de los jugadores y sus tokens, es una funcion para hacer que en el cliente aparezcan los jguadores con sus tokens
+     * @param inLobby para señalar si estan en partida o no, si estan en partida solo mandara la infomacion de activeplayers
+     */
+    private fun sendInfoOfPlayers(inLobby: Boolean = false){
         val listToSend = mutableListOf<PlayerDataToShow>()
 
-        activePlayers.forEach {
-            listToSend.add(PlayerDataToShow(it.name, it.tokens))
+        if (inLobby){
+            players.forEach {
+                listToSend.add(PlayerDataToShow(it.name, it.tokens))
+            }
+        }else{
+            activePlayers.forEach {
+                listToSend.add(PlayerDataToShow(it.name, it.tokens))
+            }
         }
 
         val msgJson = Json.encodeToString<List<PlayerDataToShow>>(listToSend)
         broadcast(Message(MessageType.SEND_PLAYER_DATA, msgJson))
-        println("meta enviar informacion")
-
     }
 
-    // funcion para empezar una ronda
+    /**
+     * funcion para empezar una ronda
+     */
     private fun startRound(){
 
         gameActive = true
@@ -165,12 +189,13 @@ class PokerWebSocketHandler(
         broadcast(Message(MessageType.START_ROUND, ""))
         betBlinds()
 
-        println("meta empezaar ronda")
-
 
     }
 
-    // reparte cartas a las cartas cominutarias y les manda a los usuairos cuales son
+    /**
+     * reparte cartas a las cartas cominutarias y les manda a los usuairos cuales son
+     * @param numCards el numero de cartas que se van a sacar
+     */
     private fun addToCommunityCards(numCards: Int){
         for (i in 0..<numCards){
             communityCards.add(deck.drawCard())
@@ -181,7 +206,9 @@ class PokerWebSocketHandler(
         broadcast(Message(MessageType.STATE_UPDATE, jsonListOfCards))
     }
 
-    // calcula las manos de cada jugador
+    /**
+     * calcula las manos de cada jugador
+     */
     private fun calculateHands(){
         activePlayers.forEach {player ->
             player.hand = handManager.calculateHand((player.cards + communityCards).sortedByDescending { it.value.weight })
@@ -190,7 +217,9 @@ class PokerWebSocketHandler(
         }
     }
 
-    // comprueba si todos los jugadores estan listos para jugar
+    /**
+     * comprueba si todos los jugadores estan listos para jugar
+     */
     private fun allPlayersReady(): Boolean {
         players.forEach {
             if (!it.isReadyToPlay) return false
@@ -198,42 +227,59 @@ class PokerWebSocketHandler(
         return true
     }
 
-    // funcion del websocket de cuando se cierra una conexion
+    /**
+     * funcion para cuando se desconectee un usuario, mandar la informacion de sus tokens a la base de datos
+     */
+    private fun disconnectUser(player: Player?){
+        try {
+            saldoService.addTokensToUser(player?.name ?: "" ,player?.tokens ?: 0)
+            tableService.subOneNumOfPlayerFromTable(tableId)
+        }catch (e: Exception){
+            println("Hubo una excepcion al persistir datos del usuario que se ha cerrado")
+        }
+    }
+
+    /**
+     * funcion por defecto de la clase que hereda de websocket, controla si el jugador que se desconecta esta jugando ahora mismo
+     * @param session la sesion del usuario que se quiere ddesconectar
+     * @param status el porque se ha desconectaddo el usuario
+     */
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
 
+        // mira el jugador que cierra la sesion
         val sessionPlayer = players.find { it.session == session }
-        println("Se va a cerrar la conexion del jugador ${sessionPlayer?.name}")
 
-        if (gameActive && sessionPlayer !in activePlayers) {
+        // si la partida esta activa y el jugador esta dentro
+        if (gameActive && (sessionPlayer in activePlayers)) {
             sessionPlayer?.session = null
-
-            //if (sessionPlayer == players[actualPlayerIndex % players.size]){
             sessionPlayer?.hasFolded = true
-                //activePlayers.remove(sessionPlayer)
-            //}
 
             if (sessionPlayer == players[actualPlayerIndex % players.size]){
                 nextPlayerIndex()
+            }
+
+            if (numOfPlayersFolded() == activePlayers.size){
+                endRound()
             }
         }else {
 
             players.remove(sessionPlayer)
 
-            try {
-                saldoService.addTokensToUser(sessionPlayer?.name ?: "" ,sessionPlayer?.tokens ?: 0)
-                tableService.subOneNumOfPlayerFromTable(tableId)
-            }catch (e: Exception){
-                println("Hubo una excepcion al persistir datos del usuario que se ha cerrado")
-            }
+            disconnectUser(sessionPlayer)
 
             broadcast(Message(MessageType.PLAYER_LEAVE, sessionPlayer?.name ?: ""))
-
+            sendInfoOfPlayers(true)
             super.afterConnectionClosed(session, status)
+
         }
 
     }
 
-    // funcion para cuando un jugador se une a la mesa, el usuario manda automaticamente este mensaje
+    /**
+     * funcion para cuando un jugador se une a la mesa, el usuario manda automaticamente este mensaje para almacenar su informacion
+     * @param player el jugador que se une
+     * @param msgPayload la informaacion del usuario en forma de string
+     */
     private fun getPlayerInfo(player: Player,msgPayload: String){
         val playerInfo = Json.decodeFromString<PlayerInfoMessage>(msgPayload)
 
@@ -246,7 +292,7 @@ class PokerWebSocketHandler(
 
             val playerDataToShowString =  Json.encodeToString(PlayerDataToShow(player.name, player.tokens))
             broadcast(Message(MessageType.PLAYER_JOIN, playerDataToShowString))
-           // sendInfoOfPlayers()
+            sendInfoOfPlayers(true)
 
         }catch(e: Exception){
             afterConnectionClosed(player.session!!, CloseStatus(4001,e.message))
@@ -254,7 +300,10 @@ class PokerWebSocketHandler(
 
     }
 
-    // comprueba si un jugador esta listo y si las condiciones se dan comienza la partida
+    /**
+     * comprueba si un jugador esta listo y si las condiciones se dan comienza la partida
+     * @param player el jugador que manda la accion
+     */
     private fun playerReady(player: Player){
         // Si la partida esta activa, no se puede dar a listo directamente
         if (!gameActive){
@@ -263,7 +312,7 @@ class PokerWebSocketHandler(
 
             broadcast(Message(MessageType.PLAYER_READY, jsonToBool))
 
-            // El poker requiere minimo de 3 personas para comenzar la partida, si no hay 3 personas en la lobby
+            // El poker requiere minimo de 2 personas para comenzar la partida, si no hay 2 personas en la lobby
             if (players.size >= 2 && allPlayersReady()) {
                 broadcast(Message(MessageType.SERVER_RESPONSE, "The game is going to start!"))
                 startRound()
@@ -273,7 +322,11 @@ class PokerWebSocketHandler(
         }
     }
 
-    // funcion para recibir un mensaje, lo convierto a json para parsear el mensaje con una clase personalizada y dependiendo de este hago una cosa u otra
+    /**
+     * funcion por defecto de websocket para recibir un mensaje, lo convierto a json para parsear el mensaje con una clase personalizada y dependiendo de este hago una cosa u otra
+     * @param session la sesion del que manda el mensaje
+     * @param message el payload del mensaje
+     */
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val action = message.payload
 
@@ -315,14 +368,19 @@ class PokerWebSocketHandler(
 
     }
 
-    // comprueba si tiene que ir a la siguiente ronda
+    /**
+     * comprueba si tiene que ir a la siguiente ronda
+     * @return un booleano para saber si hay que pasar la rondad
+     */
     private fun checkIfPassRound(): Boolean{
         return activePlayers
             .filter { it.playerState != PlayerState.ALL_IN && !it.hasFolded }
             .all { it.playerState == PlayerState.READY }
     }
 
-    // pone todos los jugadores a not ready, por si alguien hace raise
+    /**
+     * pone todos los jugadores a not ready, por si alguien hace raise
+     */
     private fun allPlayersToNotReady(){
         activePlayers.forEach {
             if (it.playerState != PlayerState.ALL_IN && !it.hasFolded) {
@@ -331,13 +389,16 @@ class PokerWebSocketHandler(
         }
     }
 
-    // comprueba los ganadroes de la ronda actual
+    /**
+     * comprueba los ganadroes de la ronda actual
+     */
     private fun chooseWinners(){
 
+        // side pots con el pot manager
         val sidePots = potManager.calculateSidePots()
 
-
         for (i in sidePots.indices) {
+            // para cada pot calcula los ganaddores
             val winners = handManager.compareHands(sidePots[i].players)
             val prize = sidePots[i].amount / winners.size
             winners.forEach {
@@ -353,7 +414,9 @@ class PokerWebSocketHandler(
 
     }
 
-    // funcion para acabar la ronda
+    /**
+     * funcion para acabar la ronda, lo reinicia todo
+     */
     private fun endRound(){
 
         players.forEach {
@@ -372,6 +435,10 @@ class PokerWebSocketHandler(
         }
 
         playersToKick.forEach {
+            // si ya se ha desconectado, quiere decir que se ha desconectado en medio de la partida y no se le han devuelto los tokens
+            if (it.session == null){
+                disconnectUser(it)
+            }
             if (it.session != null){
                 afterConnectionClosed(it.session!!, CloseStatus(4001,""))
             }
@@ -379,20 +446,40 @@ class PokerWebSocketHandler(
 
         players.removeAll(playersToKick)
 
+        communityCards.clear()
+
         actualTurn = TurnType.PRE_FLOP
         betManager.clear()
         betManager.resetBets(players)
         gameActive = false
         broadcast(Message(MessageType.END_ROUND, ""))
-
+        sendInfoOfPlayers(true)
     }
 
-    // nuevo turno despues del preflop, flop ....
+    /**
+     * funcion para saber el numero de jugaddores que han foldeaddo
+     * @return el numero dde jugadores que ha foldeado
+     */
+    private fun numOfPlayersFolded():Int{
+        var num = 0
+
+        activePlayers.forEach {
+            if (it.hasFolded){
+                num++
+            }
+        }
+
+        return num
+    }
+
+    /**
+     * nuevo turno despues del preflop, flop ....
+     */
     private fun newTurn(){
         // dependiendo de si esta en el preflop, flop o river, sacara 3, 1 o no sacara cartas
         // por el momento paara probar solo voy a sacar 1 carta
 
-        if (actualTurn == TurnType.SHOWDOWN || activePlayers.size == 1){
+        if (actualTurn == TurnType.SHOWDOWN || numOfPlayersFolded() == activePlayers.size - 1){
 
             // Catetada por si todo el mundo va all in de primeras
             if (actualTurn != TurnType.SHOWDOWN ){
@@ -442,10 +529,13 @@ class PokerWebSocketHandler(
 
     }
 
-    // funcion para calcular el proximo index de los jugadores
+    /**
+     * funcion para calcular el proximo index de los jugadores
+     */
     private fun nextPlayerIndex() {
-        if (activePlayers.isEmpty()){
+        if (numOfPlayersFolded() == activePlayers.size){
             actualPlayerIndex = 0
+            endRound()
             return
         }
 
@@ -464,7 +554,12 @@ class PokerWebSocketHandler(
         sendInfoOfPlayers()
     }
 
-    // Envia una apuesta a la base de datos
+    /**
+     * Envia una apuesta a la base de datos
+     * @param playerName el nombre del jugador
+     * @param amount la  cantidad dde la apuesta
+     * @param betType el tipo de apuesta
+     */
     fun makeBetToService(playerName: String, amount: Int, betType: String){
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -476,7 +571,11 @@ class PokerWebSocketHandler(
         }
     }
 
-    // funcion para recibir la accion que ha hecho el jugador
+    /**
+     * funcion para recibir la accion que ha hecho el jugador
+     * @param player el jugador que hace la accion
+     * @param action la accion que ha hecho el jugador
+     */
     private fun receiveBetAction(player: Player, action: BetPayload){
 
         if (gameActive){
@@ -484,22 +583,27 @@ class PokerWebSocketHandler(
             if (player == activePlayers[actualPlayerIndex % activePlayers.size]){
 
                 if (action.action == BetAction.RAISE && action.amount > 0){
-
+                    // mira cual es la maxima apuesta de los jugaodres
                     val maxBet = activePlayers.maxOfOrNull { it.currentBet } ?: 0
+                    // mira si tiene que poner para callear
                     val amountToCall = maxOf(0, maxBet - player.currentBet)
+                    // suma la cantidad para checkear y la cantidad que quiere hacer raise
                     val amountToBet = amountToCall + action.amount
 
                     if (amountToBet <= player.tokens){
+                        // hace la apuesta y pone a todos lo jugadores como no listo
                         broadcast(Message(MessageType.SERVER_RESPONSE, "'${player.name}' raised $amountToBet"))
+
+                        allPlayersToNotReady()
 
                         player.playerState = PlayerState.READY
 
                         betManager.makeBet(player,amountToBet)
                         makeBetToService(player.name, amountToBet,"Raise")
 
-                        allPlayersToNotReady()
-
                     }else{
+
+                        // hace aallin en caso de que no tengas suficientes tokens
                         sendMessageToPlayer(player,
                             Message(MessageType.SERVER_RESPONSE, "You don't have enough tokens, going all-in")
                         )
@@ -513,6 +617,8 @@ class PokerWebSocketHandler(
 
 
                 }else if (action.action == BetAction.CALL){
+
+                    // casi igual que el raise pero quitando la parte de subir la apuesta
 
                     player.playerState = PlayerState.READY
 
@@ -548,7 +654,7 @@ class PokerWebSocketHandler(
 
                 }else if (action.action == BetAction.FOLD){
 
-                    //activePlayers.remove(player)
+                    // caso para foldear
                     player.hasFolded = true
                     broadcast(Message(MessageType.SERVER_RESPONSE, "'${player.name}' has retired"))
                     makeBetToService(player.name, 0,"Fold")
@@ -577,15 +683,21 @@ class PokerWebSocketHandler(
 
     }
 
-    // envia un mensaje a un jugador solo
+    /**
+     * envia un mensaje a un jugador solo
+     * @param player el jugador al que se le enviara el mensaje
+     * @param message el mensaje a enviar al jugador
+     */
     private fun sendMessageToPlayer(player: Player, message: Message){
         val jsonMsg = Json.encodeToString(message)
         player.session?.sendMessage(TextMessage(jsonMsg))
     }
 
-    // envia un mensaje a todos los jugadores
+    /**
+     * envia un mensaje a todos los jugadores
+     * @param message mensaje para enviar a todos los jugadores
+     */
     private fun broadcast(message: Message) {
-        println("se ha mandado un mensaje: $message")
         val jsonMessage = Json.encodeToString<Message>(message)
         players.forEach { it.session?.sendMessage(TextMessage(jsonMessage)) }
     }
