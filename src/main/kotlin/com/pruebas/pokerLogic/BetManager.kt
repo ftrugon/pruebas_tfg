@@ -15,9 +15,12 @@ class BetManager {
      */
     fun resetBets(players: List<Player>) {
         players.forEach { it.currentBet = 0 }
-        madeBets.clear()
+        clear()
     }
 
+    /**
+     * funcion para hacer una apuesta y almacenarla
+     */
     fun makeBet(player: Player, amount: Int) {
         if (amount <= 0) return
 
@@ -33,22 +36,17 @@ class BetManager {
         madeBets.add(Bet(player, realAmount))
     }
 
+    /**
+     * funcion para tener la cantindad total de dinero en la mesa
+     * @return la cantidad
+     */
     fun totalAmount(): Int {
         return madeBets.sumOf{ it.amount }
     }
 
-    fun betsByPlayer(player: Player): List<Bet> {
-        return madeBets.filter { it.player == player }
-    }
-
-    fun totalBetByPlayer(player: Player): Int {
-        return madeBets.filter { it.player == player }.sumOf { it.amount }
-    }
-
-    fun getCurrentBet(player: Player): Int {
-        return totalBetByPlayer(player)
-    }
-
+    /**
+     * limpia las apuestas
+     */
     fun clear() {
         madeBets.clear()
     }

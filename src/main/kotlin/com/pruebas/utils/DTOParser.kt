@@ -11,15 +11,25 @@ import com.pruebas.model.Usuario
  */
 object DTOParser {
 
+    /**
+     * funcion para pasar un dto de registro a un usuario
+     * @param registrarUsuarioDTO el dto del registro
+     * @return el usuario registrado en forma de usuario
+     */
     fun registrarDTOToUsuario(registrarUsuarioDTO: RegistrarUsuarioDTO): Usuario {
         return Usuario(
             null,
             registrarUsuarioDTO.username,
             registrarUsuarioDTO.password,
-            100
+            0
         )
     }
 
+    /**
+     * funcion para pasar un usuario u un dto
+     * @param usuario el usuario paara parsear
+     * @return el usuario parseado a dto
+     */
     fun usuarioToDto(usuario: Usuario): UsuarioDTO {
         return UsuarioDTO(
             usuario.username,
@@ -27,6 +37,11 @@ object DTOParser {
         )
     }
 
+    /**
+     * funcion para pasar un table dto a able
+     * @param insertTableDTO la mesa a insertar
+     * @return la mesa insertada
+     */
     fun insertTableDTOToTable(insertTableDTO: InsertTableDTO): Table {
         return Table(null,
             insertTableDTO.title,

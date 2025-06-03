@@ -34,17 +34,21 @@ class UsuarioController {
     private lateinit var usuarioService: UsuarioService
 
 
+    /**
+     * funcion para registrarse
+     */
     @PostMapping("/register")
     fun insert(
-        httpRequest: HttpServletRequest,
         @RequestBody registrarUsuario: RegistrarUsuarioDTO,
     ): ResponseEntity<UsuarioDTO?>? {
-
         return ResponseEntity(usuarioService.insertUser(registrarUsuario), HttpStatus.CREATED)
 
     }
 
 
+    /**
+     * funcion para hacer login
+     */
     @PostMapping("/login")
     fun login(
         @RequestBody usuarioLoginDTO: UsuarioLoginDTO
@@ -74,6 +78,9 @@ class UsuarioController {
     }
 
 
+    /**
+     * funcion para ver lo detalles de tu cuenta
+     */
     @GetMapping("/myInfo")
     fun getUserInfo(
         authentication: Authentication
@@ -81,7 +88,9 @@ class UsuarioController {
         return ResponseEntity(usuarioService.getByUsername(authentication.name), HttpStatus.OK)
     }
 
-
+    /**
+     * funcion para obtener los detalles de la cuenta de un usuario siendo admin
+     */
     @GetMapping("/getUserInfo/{username}")
     fun getInfoFromUser(
         authentication: Authentication,
@@ -94,6 +103,9 @@ class UsuarioController {
         }
     }
 
+    /**
+     * funcion para cambiarte el usename
+     */
     @PutMapping("/changeUsername/{username}")
     fun changeUsername(
         authentication: Authentication,
@@ -103,6 +115,9 @@ class UsuarioController {
         return ResponseEntity(usuarioService.changeUsername(authentication.name,username),HttpStatus.OK)
     }
 
+    /**
+     * funcion para que un admin pueda banear a un usuario
+     */
     @PutMapping("/banUser/{username}")
     fun banUser(
         authentication: Authentication,

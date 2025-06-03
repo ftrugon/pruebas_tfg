@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/tables")
 class TableController(
-    private val games: MutableMap<String, PokerWebSocketHandler>
+    private val games: MutableMap<String, PokerWebSocketHandler>  // necesito esto para añadir las mesas cuand se haga una consulta a la api
 ) {
 
     @Autowired
@@ -34,6 +34,9 @@ class TableController(
     @Autowired
     private lateinit var betsService: BetService
 
+    /**
+     * funcion para insertar una mesa
+     */
     @PostMapping("/insertTable")
     fun insertTable(
         @RequestBody insertTableDto: InsertTableDTO
@@ -67,6 +70,9 @@ class TableController(
 //        return ResponseEntity(tableService.insertTable(tableDTO) ,HttpStatus.CREATED)
 //    }
 
+    /**
+     * funcion para obtener todas las mesas
+     */
     @GetMapping("/getAll")
     fun getTables():ResponseEntity<List<Table>> {
         return ResponseEntity(tableService.getAllTables(), HttpStatus.OK)
@@ -89,6 +95,9 @@ class TableController(
 //        return ResponseEntity(tableService.subOneNumOfPlayerFromTable(id),HttpStatus.OK)
 //    }
 
+    /**
+     * funcion para que un admin puedda eliminar las mesas inutiles
+     */
     @DeleteMapping("/deleteUselessTables")
     fun delete(
         authentication: Authentication

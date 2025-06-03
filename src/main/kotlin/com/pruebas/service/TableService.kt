@@ -9,12 +9,20 @@ import org.apache.coyote.BadRequestException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
+
+/**
+ * clase que contiene la logiuca de negocio de las tablas
+ */
 @Service
 class TableService {
 
     @Autowired
     private lateinit var tableRepository: TableRepository
 
+    /**
+     * funcion para insertar una mesa
+     * @param tableToInsert los datos de la tabla que queremos insertar
+     */
     fun insertTable(tableToInsert: InsertTableDTO): Table{
 
         if (tableToInsert.title.isEmpty()){
@@ -29,10 +37,19 @@ class TableService {
         return tableRepository.save(table)
     }
 
+    /**
+     * funcion para obtener todas las mesas actuales que tiene la base de datos
+     * @return la lista de todas las mesas
+     */
     fun getAllTables(): List<Table>{
         return tableRepository.findAll()
     }
 
+    /**
+     * funcion para sumar 1 a los jugadores actuales de una mesa
+     * @param tableId la id de la mesa a cambiar
+     * @return la mesa con los cambios
+     */
     fun sumOneNumOfPlayerFromTable(tableId: String):Table{
 
         val existTable = tableRepository.findBy_id(tableId)
@@ -51,7 +68,11 @@ class TableService {
         return tableRepository.save(table)
     }
 
-
+    /**
+     * funcion para quitar 1 a los jugadores actuales de una mesa
+     * @param tableId la id de la mesa a cambiar
+     * @return la mesa con los cambios
+     */
     fun subOneNumOfPlayerFromTable(tableId: String):Table{
 
         val existTable = tableRepository.findBy_id(tableId)
@@ -70,7 +91,10 @@ class TableService {
         return tableRepository.save(table)
     }
 
-
+    /**
+     * funcion para eliminar las mesas inutiles
+     * @param tablesToDel las mesas que se van a eliminar
+     */
     fun deleteTables(tablesToDel: List<Table>){
 
         for (table in tablesToDel){

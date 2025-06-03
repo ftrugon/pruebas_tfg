@@ -117,6 +117,19 @@ class PokerWebSocketHandler(
 
     }
 
+
+    /**
+     * funcion para enviar al los usuarios una alerta de que es su turno
+     */
+    private fun notifyTurn(){
+
+        if (gameActive) {
+            val player = activePlayers[actualPlayerIndex % activePlayers.size]
+            broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
+            broadcast(Message(MessageType.SEND_ACTUAL_TABLE_AMOUNT, betManager.totalAmount().toString()))
+        }
+    }
+
     /**
      * funcion que se ejecuta al principio de cada partida, reparte los blinds y los turnos
      */
@@ -148,8 +161,7 @@ class PokerWebSocketHandler(
 
         // notificar el turno
         actualPlayerIndex += 3
-        val player = activePlayers[actualPlayerIndex % activePlayers.size]
-        broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
+        notifyTurn()
 
     }
 
@@ -252,7 +264,7 @@ class PokerWebSocketHandler(
         // si la partida esta activa y el jugador esta dentro
         if (gameActive && (sessionPlayer in activePlayers)) {
             sessionPlayer?.session = null
-            sessionPlayer?.hasFolded = true
+            sessionPlayer?.fold()
 
             if (sessionPlayer == players[actualPlayerIndex % players.size]){
                 nextPlayerIndex()
@@ -420,10 +432,7 @@ class PokerWebSocketHandler(
     private fun endRound(){
 
         players.forEach {
-            it.isReadyToPlay = false
-            it.cards.clear()
-            it.hasFolded = false
-            it.playerState = PlayerState.NOT_READY
+            it.resetForNewHand()
 
             if (it.session == null){
                 playersToKick.add(it)
@@ -549,8 +558,8 @@ class PokerWebSocketHandler(
         }
 
         actualPlayerIndex = index
-        val player = activePlayers[actualPlayerIndex % activePlayers.size]
-        broadcast(Message(MessageType.NOTIFY_TURN, "${player.name}:${player.tokens}"))
+        notifyTurn()
+
         sendInfoOfPlayers()
     }
 
@@ -655,7 +664,7 @@ class PokerWebSocketHandler(
                 }else if (action.action == BetAction.FOLD){
 
                     // caso para foldear
-                    player.hasFolded = true
+                    player.fold()
                     broadcast(Message(MessageType.SERVER_RESPONSE, "'${player.name}' has retired"))
                     makeBetToService(player.name, 0,"Fold")
 

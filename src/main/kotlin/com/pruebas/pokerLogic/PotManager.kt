@@ -1,7 +1,15 @@
 package com.pruebas.pokerLogic
 
+/**
+ * clase que se encarga de los pots
+ * @property betManager hace falta el betmanager para saber los pots
+ */
 class PotManager(private val betManager: BetManager) {
 
+    /**
+     * funcion que calcula los sidepots
+     * @return los pots
+     */
     fun calculateSidePots(): List<Pot> {
         // Apuestas totales por jugador (los retirados también aportan pero no ganan)
         val totalBets = betManager.madeBets

@@ -25,6 +25,9 @@ class PlayerTokensController {
 
     // NOTA MENTAL, 100 TOKENS DE USUARIO = 1€, 1 TOKEN = 1 Cent
 
+    /**
+     * funcion para obtener la cantidad de tokens que hay en mi cuenta
+     */
     @GetMapping("/getTotalAmount")
     fun getTotalAmount(
         authentication: Authentication
@@ -36,7 +39,9 @@ class PlayerTokensController {
 
     }
 
-
+    /**
+     * funcion para insertar tokens a mi cuenta
+     */
     @PutMapping("/insertTokens/{amount}")
     fun insertTokens(
         authentication: Authentication,
@@ -49,6 +54,9 @@ class PlayerTokensController {
     }
 
 
+    /**
+     * funcion para aretirar tokens de mi cuenta
+     */
     @PutMapping("/retireTokens/{amount}")
     fun retireTokens(
         authentication: Authentication,
@@ -67,8 +75,9 @@ class PlayerTokensController {
     }
 
 
-
-
+    /**
+     * fucnion para insertar tokens a la cuenta de un usuario siendo administrador
+     */
     @PutMapping("/insertTokensFrom/{username}/{amount}")
     fun insertTokensFromUser(
         authentication: Authentication,
@@ -85,7 +94,9 @@ class PlayerTokensController {
 
     }
 
-
+    /**
+     * funcion para retirar tokens de un usuario siendo administrador
+     */
     @PutMapping("/retireTokensFrom/{username}/{amount}")
     fun retireTokensFromUser(
         authentication: Authentication,

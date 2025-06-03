@@ -10,12 +10,20 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 
+/**
+ * clase que se encarga de la gestion de los jwt
+ */
 @Service
 class TokenService {
 
     @Autowired
     private lateinit var jwtEncoder: JwtEncoder
 
+    /**
+     * funcion para generar un token
+     * @param authentication la autheticacion que el usuario manda para logearse
+     * @return el token
+     */
     fun generarToken(authentication: Authentication) : String {
 
         val roles: String = authentication.authorities.joinToString(" ") { it.authority } // Contiene los roles del usuario

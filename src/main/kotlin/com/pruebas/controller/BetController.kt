@@ -26,6 +26,9 @@ class BetController {
     @Autowired
     private lateinit var usuarioService: UsuarioService
 
+    /**
+     * funcion para obtener las bets de el usuario que hace la consulta
+     */
     @GetMapping("/myBets")
     fun getMyBets(
         authentication: Authentication
@@ -41,7 +44,9 @@ class BetController {
 
     }
 
-
+    /**
+     * funcion para obtener laas apuestas de un usuario siendo admin
+     */
     @GetMapping("/betsFromUser/{userId}")
     fun getBetsByUserId(
         authentication: Authentication,
@@ -62,12 +67,5 @@ class BetController {
 
     }
 
-//    @DeleteMapping("/deleteBet/{betId}")
-//    fun deleteBet(
-//        authentication: Authentication,
-//        @PathVariable betId: String
-//    ){
-//
-//    }
 
 }

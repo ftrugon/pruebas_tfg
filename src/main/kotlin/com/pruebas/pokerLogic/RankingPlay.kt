@@ -1,5 +1,8 @@
 package com.pruebas.pokerLogic
 
+/**
+ * enum para cada jugada de mejor a peor de poker
+ */
 enum class RankingPlay {
     ROYAL_FLUSH,
     STRAIGHT_FLUSH,
