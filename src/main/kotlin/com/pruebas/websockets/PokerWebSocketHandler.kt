@@ -247,7 +247,6 @@ class PokerWebSocketHandler(
             saldoService.addTokensToUser(player?.name ?: "" ,player?.tokens ?: 0)
             tableService.subOneNumOfPlayerFromTable(tableId)
         }catch (e: Exception){
-            println("Hubo una excepcion al persistir datos del usuario que se ha cerrado")
         }
     }
 
@@ -574,8 +573,7 @@ class PokerWebSocketHandler(
             try {
                 val userId = saldoService.getByUsername(playerName)._id
                 betService.insertBet(BetDocument(null,tableTitle,tableId,userId?: "",amount,betType))
-            }catch (e:Exception){
-                println("Error while uploading bet on db")
+            } catch (e: Exception) {
             }
         }
     }

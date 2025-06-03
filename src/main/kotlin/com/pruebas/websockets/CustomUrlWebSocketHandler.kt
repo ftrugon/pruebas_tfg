@@ -33,13 +33,11 @@ class CustomUrlWebSocketHandler(
 
         val url = session.uri?.path ?: return
         val gameId = getTableIdFromUrl(url) ?: return
-        println("Conexión WebSocket recibida para la mesa: $gameId")
 
         val handler = games[gameId]
 
         if (handler == null) {
-            println("handler no encontrado")
-            // No existe esa mesa
+
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Mesa no encontrada"))
             return
         }
