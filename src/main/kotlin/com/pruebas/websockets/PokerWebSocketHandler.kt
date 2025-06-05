@@ -430,6 +430,8 @@ class PokerWebSocketHandler(
      */
     private fun endRound(){
 
+        allPlayerCardsBroadCast()
+
         players.forEach {
             it.resetForNewHand()
 
@@ -448,7 +450,10 @@ class PokerWebSocketHandler(
                 disconnectUser(it)
             }
             if (it.session != null){
+
+                sendMessageToPlayer(it, Message(MessageType.SERVER_RESPONSE,"You dont have enough tokens to continue playing, please get out of the table"))
                 afterConnectionClosed(it.session!!, CloseStatus(4001,""))
+                disconnectUser(it)
             }
         }
 
@@ -481,15 +486,31 @@ class PokerWebSocketHandler(
     }
 
     /**
+     * funcion para saber el numero de jugaddores que han foldeaddo
+     * @return el numero dde jugadores que ha foldeado
+     */
+    private fun numOfPlayersAllIn():Int{
+        var num = 0
+
+        activePlayers.forEach {
+            if (it.playerState == PlayerState.ALL_IN){
+                num++
+            }
+        }
+
+        return num
+    }
+
+    /**
      * nuevo turno despues del preflop, flop ....
      */
     private fun newTurn(){
         // dependiendo de si esta en el preflop, flop o river, sacara 3, 1 o no sacara cartas
         // por el momento paara probar solo voy a sacar 1 carta
 
-        if (actualTurn == TurnType.SHOWDOWN || numOfPlayersFolded() == activePlayers.size - 1){
+        if (actualTurn == TurnType.SHOWDOWN || numOfPlayersFolded() == activePlayers.size - 1 || numOfPlayersAllIn() == activePlayers.size - 1){
 
-            // Catetada por si todo el mundo va all in de primeras
+            // Catetada por si todos el mundo va all in o fold de primeras
             if (actualTurn != TurnType.SHOWDOWN ){
                 when (actualTurn){
                     TurnType.PRE_FLOP -> {
@@ -504,17 +525,14 @@ class PokerWebSocketHandler(
                     else ->{
                         // nada jasjasj
                     }
-
                 }
             }
+            calculateHands()
             chooseWinners()
             endRound()
             return
         }
 
-//        if (actualTurn == TurnType.RIVER){
-//            actualTurn = TurnType.SHOWDOWN
-//        }
 
         if (actualTurn == TurnType.TURN){
             actualTurn = TurnType.SHOWDOWN
@@ -537,8 +555,7 @@ class PokerWebSocketHandler(
 
     }
 
-    /*
-    *
+    /**
      * funcion para calcular el proximo index de los jugadores
      */
     private fun nextPlayerIndex() {
@@ -550,7 +567,7 @@ class PokerWebSocketHandler(
 
         var index = (actualPlayerIndex + 1) % activePlayers.size
 
-        while (activePlayers[index].hasFolded) {
+        while (activePlayers[index].hasFolded || activePlayers[index].playerState == PlayerState.ALL_IN) {
             index = (index + 1) % activePlayers.size
 
             // Si hemos dado la vuelta completa y no hay nadie disponible
@@ -710,4 +727,20 @@ class PokerWebSocketHandler(
         players.forEach { it.session?.sendMessage(TextMessage(jsonMessage)) }
     }
 
+    /**
+     * Funcion que indica todas las cartas de cada jugador al final de la ronda
+     */
+    private fun allPlayerCardsBroadCast(){
+
+        players.forEach { playerToSendInfo->
+            val mapOfPlayers = mutableMapOf<String,List<Card>>()
+
+            players.forEach { playerWithCards ->
+                mapOfPlayers[playerWithCards.name] = playerWithCards.cards
+            }
+
+            val jsonMsg = Json.encodeToString(mapOfPlayers)
+            sendMessageToPlayer(playerToSendInfo,Message(MessageType.ALL_PLAYERS_CARDS,jsonMsg))
+        }
+    }
 }
