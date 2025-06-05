@@ -34,6 +34,6 @@ data class Player(
     }
 
     fun fold() {
-        playerState = PlayerState.RETIRED
+        hasFolded = true
     }
 }

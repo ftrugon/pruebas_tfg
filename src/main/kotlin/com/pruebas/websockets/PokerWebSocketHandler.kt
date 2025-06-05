@@ -537,7 +537,8 @@ class PokerWebSocketHandler(
 
     }
 
-    /**
+    /*
+    *
      * funcion para calcular el proximo index de los jugadores
      */
     private fun nextPlayerIndex() {
