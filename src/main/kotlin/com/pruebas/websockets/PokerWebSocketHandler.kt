@@ -723,8 +723,9 @@ class PokerWebSocketHandler(
      * @param message mensaje para enviar a todos los jugadores
      */
     private fun broadcast(message: Message) {
-        val jsonMessage = Json.encodeToString<Message>(message)
-        players.forEach { it.session?.sendMessage(TextMessage(jsonMessage)) }
+        players.forEach {
+            sendMessageToPlayer(it,message)
+        }
     }
 
     /**

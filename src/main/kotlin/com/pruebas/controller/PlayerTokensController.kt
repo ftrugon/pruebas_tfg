@@ -105,7 +105,11 @@ class PlayerTokensController {
     ): ResponseEntity<UsuarioDTO> {
 
 
-        usuarioService.retireTokensToUser(authentication.name,amount)
+        if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }) {
+            usuarioService.retireTokensToUser(authentication.name,amount)
+        }else{
+            throw UnauthorizedException("Admin is required")
+        }
 
         // LLAMAR A OTRA API PARA RETIRAR EL DINERO
 

@@ -37,6 +37,11 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
+
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+	testImplementation("org.springframework.security:spring-security-test:6.1.4")
+
 }
 
 kotlin {
