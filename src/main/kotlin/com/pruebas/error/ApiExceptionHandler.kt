@@ -6,10 +6,13 @@ import com.pruebas.error.exceptions.UnauthorizedException
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.coyote.BadRequestException
 import org.springframework.http.HttpStatus
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import javax.naming.AuthenticationException
 
 
@@ -23,7 +26,8 @@ class ApiExceptionHandler {
         return ErrorResponse(e.message!!, request.requestURI)
     }
 
-    @ExceptionHandler(IllegalArgumentException::class, BadRequestException::class)
+    @ExceptionHandler(IllegalArgumentException::class, BadRequestException::class,HttpMessageNotReadableException::class,
+        MethodArgumentTypeMismatchException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     fun handleBadArguments(request: HttpServletRequest, e: Exception) : ErrorResponse {
@@ -37,12 +41,13 @@ class ApiExceptionHandler {
         return ErrorResponse(e.message!!, request.requestURI)
     }
 
-    @ExceptionHandler(NotFoundException::class)
+    @ExceptionHandler(NotFoundException::class, NoResourceFoundException::class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ResponseBody
     fun notFound(request: HttpServletRequest, e: Exception) : ErrorResponse {
         return ErrorResponse(e.message!!, request.requestURI)
     }
+
 
     @ExceptionHandler(Exception::class, NullPointerException::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

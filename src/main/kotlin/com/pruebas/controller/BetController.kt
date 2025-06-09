@@ -54,13 +54,8 @@ class BetController {
     ): ResponseEntity<List<BetDocument>> {
 
         if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }){
-            val user = usuarioService.getByUsername(authentication.name)
 
-            if (user._id == null){
-                throw NotFoundException("Main variable from user is null")
-            }
-
-            return ResponseEntity(betService.getBetsByUserId(user._id), HttpStatus.OK)
+            return ResponseEntity(betService.getBetsByUserId(userId), HttpStatus.OK)
         }else{
             throw UnauthorizedException("Admin is required")
         }

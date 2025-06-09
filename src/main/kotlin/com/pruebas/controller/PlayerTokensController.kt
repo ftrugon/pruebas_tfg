@@ -2,7 +2,6 @@ package com.pruebas.controller
 
 import com.pruebas.dto.UsuarioDTO
 import com.pruebas.error.exceptions.UnauthorizedException
-import com.pruebas.service.TableService
 import com.pruebas.service.UsuarioService
 import com.pruebas.utils.DTOParser
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,7 +11,6 @@ import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestMapping
 
@@ -78,8 +76,8 @@ class PlayerTokensController {
     /**
      * fucnion para insertar tokens a la cuenta de un usuario siendo administrador
      */
-    @PutMapping("/insertTokensFrom/{username}/{amount}")
-    fun insertTokensFromUser(
+    @PutMapping("/insertTokensTo/{username}/{amount}")
+    fun insertTokensToUser(
         authentication: Authentication,
         @PathVariable("amount") amount: Int,
         @PathVariable username: String
@@ -87,7 +85,7 @@ class PlayerTokensController {
         // LLAMAR A OTRA API PARA EL PAGO DE LA TRANSACCION
 
         if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }) {
-            return ResponseEntity(usuarioService.addTokensToUser(authentication.name,amount), HttpStatus.OK)
+            return ResponseEntity(usuarioService.addTokensToUser(username,amount), HttpStatus.OK)
         }else{
             throw UnauthorizedException("Admin is required")
         }
@@ -106,7 +104,7 @@ class PlayerTokensController {
 
 
         if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }) {
-            usuarioService.retireTokensToUser(authentication.name,amount)
+            usuarioService.retireTokensToUser(username,amount)
         }else{
             throw UnauthorizedException("Admin is required")
         }
@@ -115,7 +113,7 @@ class PlayerTokensController {
 
         // otraapi.añadiracuenta(amountToRetire)
 
-        return ResponseEntity( DTOParser.usuarioToDto(usuarioService.getByUsername(authentication.name)),HttpStatus.OK)
+        return ResponseEntity( DTOParser.usuarioToDto(usuarioService.getByUsername(username)),HttpStatus.OK)
 
     }
 
