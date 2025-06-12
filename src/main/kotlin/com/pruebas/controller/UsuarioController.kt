@@ -113,17 +113,6 @@ class UsuarioController {
         @PathVariable username: String,
     ): ResponseEntity<UsuarioDTO> {
 
-        if (username.isBlank() || username.length < 3) {
-            throw BadRequestException("New username cannot be blank or has less than 3 characters.")
-        }
-        try {
-            val userExist = usuarioService.getByUsername(username)
-            throw AlreadyExistException("There is an username registered with that name")
-        }catch (e: UnauthorizedException) {
-
-        }
-
-
         return ResponseEntity(usuarioService.changeUsername(authentication.name,username),HttpStatus.OK)
     }
 

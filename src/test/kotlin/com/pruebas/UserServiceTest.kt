@@ -222,14 +222,46 @@ class UserServiceTest {
         `when`(usuarioRepository.findByUsername("Admin"))
             .thenReturn(Optional.of(usuarioOriginal))
 
+        `when`(usuarioRepository.findByUsername("String"))
+            .thenReturn(Optional.empty())
+
         `when`(usuarioRepository.save(any()))
             .thenReturn(usuarioActualizado)
+
+
 
         val resultado = usuarioService.changeUsername("Admin", "String")
 
         assertEquals("String", resultado.username)
         verify(usuarioRepository).findByUsername("Admin")
         verify(usuarioRepository).save(usuarioOriginal)
+    }
+
+    @Test
+    fun `changeUsername throws BadRequestException when newUsername is too short`() {
+        assertThrows(BadRequestException::class.java) {
+            usuarioService.changeUsername("Admin", "ab")
+        }
+
+    }
+
+    @Test
+    fun `changeUsername throws AlreadyExistException when newUsername already exists`() {
+        val usuarioExistente = Usuario(
+            _id = "1",
+            username = "String",
+            password = "1234",
+            tokens = 100,
+            roles = "USER"
+        )
+
+        `when`(usuarioRepository.findByUsername("String"))
+            .thenReturn(Optional.of(usuarioExistente))
+
+        assertThrows(AlreadyExistException::class.java) {
+            usuarioService.changeUsername("Admin", "String")
+        }
+
     }
 
 }

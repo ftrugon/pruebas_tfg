@@ -152,6 +152,17 @@ class UsuarioService : UserDetailsService {
      */
     fun changeUsername(oldUsername: String, newUsername: String): UsuarioDTO {
 
+
+        if (newUsername.isBlank() || newUsername.length <= 3) {
+            throw BadRequestException("Your old username is too short")
+        }
+
+        val exists = usuarioRepository.findByUsername(newUsername)
+
+        if (exists.isPresent) {
+            throw AlreadyExistException("There is an username registered with that name")
+        }
+
         val user = getByUsername(oldUsername)
         user.username = newUsername
         return DTOParser.usuarioToDto(usuarioRepository.save(user))
